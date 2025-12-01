@@ -1,0 +1,76 @@
+import { Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import { Form } from 'react-bootstrap';
+import Button from 'react-bootstrap/Button';
+import { LuLogIn } from 'react-icons/lu';
+
+export default function UserLogin({toggleForm}) {
+    const { data, setData, post, processing, errors } = useForm({
+        email: '',
+        password: '',
+        remember_me: false,
+    });
+
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('hellow');
+    
+    const submit = (e) => {
+        e.preventDefault();
+    
+        post(route('login'), {
+            onSuccess: () => {
+                // Handle successful login response here
+                console.log("Logged in successfully!");
+            },
+            onError: (errors) => {
+                // Handle error responses here
+                 setShowAlert(true);
+                setAlertMessage('sdflksd');
+                console.log(errors);
+
+            },
+            onFinish: () => {
+                // Optionally, you can reset form data here
+                //reset();
+            }
+        });
+    };
+  return (
+    <>
+     {showAlert && (
+        {alertMessage}
+      )}
+        <Form onSubmit={submit}>
+            <Form.Group className="mb-3" controlId="loginEmail">
+              <Form.Label>Email address</Form.Label>
+              <Form.Control type="email" placeholder="Email Address" value={data.email}
+                    onChange={e => setData('email', e.target.value)} />
+                <span className='text-danger'>{errors.email && <span>{errors.email}</span>}</span>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="loginPassword">
+              <Form.Label>Password</Form.Label>
+              <Form.Control type="password" placeholder="Password" value={data.password}
+                    onChange={e => setData('password', e.target.value)} />
+               <span className='text-danger'> {errors.password && <span>{errors.password}</span>}</span>
+            </Form.Group>
+            <div className='row'>
+              <div className='col-md-12 text-end mb-3'>
+                <Link href="">Forget Password</Link>
+              </div>
+              <div className='col-md-12'>
+              <Button type="submit" className="w-100" size="lg" disabled={processing}>
+                  <LuLogIn style={{ height: "20px", marginRight: "10px" }} /> Login
+              </Button>
+              {/* <button type="submit" disabled={processing}>Login</button> */}
+              </div>
+              <div className='col-md-12 text-center mt-3 mb-3'>
+                <p>
+                  I have not an account
+                  <Link href="#" onClick={() => toggleForm('register')}> Register</Link>
+                </p>
+              </div>
+            </div>
+        </Form>
+    </>
+  )
+}
