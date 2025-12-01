@@ -275,7 +275,7 @@ class WelcomeController extends Controller
 
 
             $pixelData=[];
-            if(Auth::check() && (Auth::id()=='663')){
+            if(Auth::check()){
 
                 //Facebook Concersation API
                 $eventId =uniqid('page_');
@@ -287,6 +287,7 @@ class WelcomeController extends Controller
                 $data = sendEvent('PageView', $eventId, [
                     'page_name' => 'Home Page'
                 ]);
+
             }
             // dd(Auth::check());
             $promotions =Attribute::latest()->where('type',14)->where('status','active')

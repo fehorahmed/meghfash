@@ -37,9 +37,9 @@ class AdminController extends Controller
 {
 
     public function dashboard(){
-        
 
-            
+
+
         ///Reports  Summery Dashboard
         $productsCount=Post::where('type',2)
         ->where('status','active')
@@ -56,7 +56,7 @@ class AdminController extends Controller
             ->whereDate('created_at', Carbon::now());
         })
         ->get();
-        
+
         $totalDueSale = Order::whereIn('order_type', ['customer_order', 'wholesale_order', 'pos_order'])
             ->where('due_amount', '>', 0.99)
             ->when(true, function($q){
@@ -66,13 +66,13 @@ class AdminController extends Controller
                         $cq->where('order_type', 'customer_order')
                            ->whereNotIn('order_status', ['delivered','temp','pending','cancelled','returned']);
                     });
-        
+
                     // wholesale_order rules
                     $q->orWhere(function($wq){
                         $wq->where('order_type', 'wholesale_order')
                            ->whereNotIn('order_status', ['temp','pending','cancelled','returned']);
                     });
-        
+
                     // pos_order rules
                     $q->orWhere(function($pq){
                         $pq->where('order_type', 'pos_order')
@@ -80,12 +80,12 @@ class AdminController extends Controller
                     });
                 });
             });
-            
+
 
           $totalDueSale =$totalDueSale->sum('due_amount');
 
 
-        
+
         $todayStockSale=OrderItem::whereHas('order',function($q){
           $q->whereIn('order_type',['customer_order','wholesale_order','pos_order'])
             ->whereNotIn('order_status',['temp','pending','cancelled'])
@@ -95,39 +95,39 @@ class AdminController extends Controller
 
         $todaySale=Order::latest()->where('order_type','customer_order')
         ->whereNotIn('order_status',['temp','pending','cancelled'])
-        
+
         ->whereDate('created_at', Carbon::now())
         ->sum('grand_total');
-        
+
         $todayWholesale=Order::latest()->where('order_type','wholesale_order')
         ->whereNotIn('order_status',['temp','pending','cancelled'])
-        
+
         ->whereDate('created_at', Carbon::now())
         ->sum('grand_total');
-        
+
         $todayStockPurchase=Order::latest()->where('order_type','purchase_order')
         ->whereNotIn('order_status',['temp','pending','cancelled'])
-        
+
         ->whereDate('created_at', Carbon::now())
         ->sum('grand_total');
-        
+
         $todayReturnSale=Order::latest()->where('order_type','order_return')
         ->whereNotIn('order_status',['temp','pending','cancelled'])
-        
+
         ->whereDate('created_at', Carbon::now())
         ->sum('grand_total');
-        
+
         $monthlytSale=Order::latest()->where('order_type','customer_order')
         ->whereNotIn('order_status',['temp','pending','cancelled'])
         ->whereMonth('created_at', Carbon::now()->month)
         ->whereYear('created_at', Carbon::now()->year)
         ->sum('grand_total');
-        
+
         $yearlySale=Order::latest()->where('order_type','customer_order')
         ->whereNotIn('order_status',['temp','pending','cancelled'])
         ->whereYear('created_at', Carbon::now()->year)
         ->sum('grand_total');
-        
+
         $orderTotal = DB::table('orders')
         ->where('order_type','customer_order')
         ->selectRaw('count(*) as total')
@@ -135,29 +135,29 @@ class AdminController extends Controller
         ->selectRaw("count(case when order_status = 'confirmed' then 1 end) as confirmed")
         ->selectRaw("count(case when order_status = 'delivered' then 1 end) as delivered")
         ->first();
-        
+
         $todayExpense=Expense::latest()->whereDate('created_at', Carbon::now())->sum('amount');
-        
+
         $totalItems=Post::where('type',2)
         ->where('status','active')
         ->count();
-        
+
         $totalStockOutItem=Post::where('type',2)
         ->where('status','active')
         ->where('quantity',0)
         ->count();
-        
+
         $totalLowStockOutItem=Post::where('type',2)
         ->where('status','active')
         ->where('quantity','<',5)
         ->count();
-        
+
         $totalStock=Post::where('type',2)
         ->where('status','active')
         ->where('variation_status',false)
         ->sum('quantity');
-        
-        
+
+
         $totalStockData =Post::where('type',2)->where('status','active')
                     ->where('variation_status',true)
                     ->select(['id','name'])
@@ -165,12 +165,12 @@ class AdminController extends Controller
                     ->withsum('productVariationActiveAttributeItems','quantity')
                     ->get();
         $totalStock +=$totalStockData->sum('product_variation_active_attribute_items_sum_quantity');
-        
+
         $posSale = DB::table('orders')->where('order_type','pos_order')->where('order_status','delivered')->whereDate('created_at', Carbon::now())->get();
-        
-        
-        
-        
+
+
+
+
         $reports=array(
                     "product"=>$productsCount,
                     "customer"=>$customer,
@@ -196,20 +196,20 @@ class AdminController extends Controller
                     "posSale"=>$posSale->sum('grand_total'),
                 );
         ///Reports  Summery Dashboard
-        
+
         $products =Post::latest()->where('type',2)->where('status','<>','temp')->paginate(10);
 
         return view(adminTheme().'dashboard',compact('reports','products','orderTotal'));
-      
+
     }
 
 
     public function myProfile(Request $r){
-        
-        
+
+
       $user =Auth::user();
       if($r->isMethod('post')){
-        
+
         if($r->actionType=='profile'){
           $check = $r->validate([
             'name' => 'required|max:100|unique:users,name,'.$user->id,
@@ -225,7 +225,7 @@ class AdminController extends Controller
             'profile' => 'nullable|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
           ]);
-          
+
           $user->name =$r->name;
           $user->mobile =$r->mobile;
           $user->email =$r->email;
@@ -244,40 +244,40 @@ class AdminController extends Controller
             $srcType  =6;
             $fileUse  =1;
             $author=Auth::id();
-            
+
             $loadImage =uploadFile($file,$src,$srcType,$fileUse,$author);
-            // //Resize Image 
+            // //Resize Image
             // $w=250;
             // $h=250;
             // $type='md';
             // $this->resizeImage($loadImage,$type,$w,$h);
-            
-            // //Resize Image 
+
+            // //Resize Image
             // $w=50;
             // $h=50;
             // $type='sm';
             // $this->resizeImage($loadImage,$type,$w,$h);
-            
-            // //Resize Image 
+
+            // //Resize Image
             // $w=400;
             // $h=400;
             // $type='lg';
             // $this->resizeImage($loadImage,$type,$w,$h);
-            
+
           }
           ///////Image Upload End////////////
           $user->save();
-  
+
           Session()->flash('success','Your Updated Are Successfully Done!');
-  
+
         }
         if($r->actionType=='change-password'){
-  
+
           $check = $r->validate([
               'old_password' => 'required|string|min:8',
               'password' => 'required|string|min:8|confirmed|different:old_password',
           ]);
-  
+
           if(Hash::check($r->old_password, $user->password)){
             $user->password_show=$r->password;
             $user->password=Hash::make($r->password);
@@ -289,9 +289,9 @@ class AdminController extends Controller
         }
         return back();
       }
-        
+
       return view(adminTheme().'users.myProfile',compact('user'));
-      
+
     }
   //Medias Library Route
   public function medies(Request $r){
@@ -306,7 +306,7 @@ class AdminController extends Controller
           'mediaid.*' => 'required|numeric',
       ]);
 
-      for ($i=0; $i < count($r->mediaid); $i++) { 
+      for ($i=0; $i < count($r->mediaid); $i++) {
         $media =Media::find($r->mediaid[$i]);
         if($media){
 
@@ -336,7 +336,7 @@ class AdminController extends Controller
 
       // Check Permission
       if($allPer){
-        $q->where('addedby_id',auth::id()); 
+        $q->where('addedby_id',auth::id());
       }
 
     })
@@ -366,7 +366,7 @@ class AdminController extends Controller
       if(!$check){
           Session::flash('error','Need To validation');
           return back();
-      }   
+      }
 
      $files=$r->file('images');
       if($files){
@@ -379,13 +379,13 @@ class AdminController extends Controller
               $fileStatus=false;
               $author=Auth::id();
               uploadFile($file,$src,$srcType,$fileUse,$author,$fileStatus);
-              
+
           }
       }
 
     Session()->flash('success','Your Are Successfully Done');
      return redirect()->back();
-     
+
   }
 
   public function mediesEdit(Request $r, $id){
@@ -421,7 +421,7 @@ class AdminController extends Controller
 
      if($request->ajax())
     {
-   
+
     $media =Media::find($id);
     if(!$media){
       Session()->flash('error','This File Are Not Found');
@@ -429,7 +429,7 @@ class AdminController extends Controller
               'success' => false
           ]);
      }
-     
+
     if(File::exists($media->file_url)){
           File::delete($media->file_url);
     }
@@ -446,7 +446,7 @@ class AdminController extends Controller
       return Response()->json([
               'success' => true
           ]);
-    }      
+    }
 
   }
 
@@ -454,22 +454,22 @@ class AdminController extends Controller
 
 
     // Page Management Function Start
-    
+
     public function pages(Request $r){
 
       $allPer = empty(json_decode(Auth::user()->permission->permission, true)['pages']['all']);
         // Filter Action Start
-  
+
       if($r->action){
         if($r->checkid){
-  
+
         $datas=Post::latest()->where('type',0)->whereIn('id',$r->checkid)->get();
-  
+
         foreach($datas as $data){
           if($allPer && $data->addedby_id!=Auth::id()){
             // You are unauthorized Try!!
           }else{
-  
+
             if($r->action==1){
               $data->status='active';
               $data->save();
@@ -485,7 +485,7 @@ class AdminController extends Controller
             }elseif($r->action==5){
               //Page Extra Data Delete
               PostExtra::where('type',0)->where('src_id',$data->id)->delete();
-              
+
               //Page Media File Delete
               $medias =Media::latest()->where('src_type',1)->where('src_id',$data->id)->get();
               foreach($medias as $media){
@@ -494,34 +494,34 @@ class AdminController extends Controller
                 }
                 $media->delete();
               }
-  
+
               $data->delete();
-  
+
             }
-  
+
           }
-  
-  
+
+
         }
-  
+
         Session()->flash('success','Action Successfully Completed!');
-  
+
         }else{
           Session()->flash('info','Please Need To Select Minimum One Post');
         }
-  
+
         return redirect()->back();
       }
-  
+
       //Filter Action End
-  
+
       $pages=Post::latest()->where('type',0)->where('status','<>','temp')
       ->where(function($q) use ($r,$allPer) {
-  
+
           if($r->search){
               $q->where('name','LIKE','%'.$r->search.'%');
           }
-          
+
           if($r->startDate || $r->endDate)
           {
               if($r->startDate){
@@ -529,26 +529,26 @@ class AdminController extends Controller
               }else{
                   $from=Carbon::now()->format('Y-m-d');
               }
-  
+
               if($r->endDate){
                   $to =$r->endDate;
               }else{
                   $to=Carbon::now()->format('Y-m-d');
               }
-  
+
               $q->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to);
-  
+
           }
-  
+
           if($r->status){
-             $q->where('status',$r->status); 
+             $q->where('status',$r->status);
           }
-  
+
         // Check Permission
         if($allPer){
-         $q->where('addedby_id',auth::id()); 
+         $q->where('addedby_id',auth::id());
         }
-  
+
       })
       ->select(['id','name','slug','view','type','template','created_at','addedby_id','status','fetured'])
       ->paginate(25)->appends([
@@ -557,7 +557,7 @@ class AdminController extends Controller
         'startDate'=>$r->startDate,
         'endDate'=>$r->endDate,
       ]);
-  
+
       //Total Count Results
       $totals = DB::table('posts')->where('status','<>','temp')
       ->where('type',0)
@@ -565,13 +565,13 @@ class AdminController extends Controller
       ->selectRaw("count(case when status = 'active' then 1 end) as active")
       ->selectRaw("count(case when status = 'inactive' then 1 end) as inactive")
       ->first();
-  
+
       return view(adminTheme().'pages.pagesAll',compact('pages','totals'));
-  
+
     }
-  
+
     public function pagesAction(Request $r,$action,$id=null){
-  
+
       if($action=='create'){
           $page =Post::where('type',0)->where('status','temp')->where('addedby_id',Auth::id())->first();
           if(!$page){
@@ -582,7 +582,7 @@ class AdminController extends Controller
           }
           $page->created_at =Carbon::now();
           $page->save();
-    
+
           return redirect()->route('admin.pagesAction',['edit',$page->id]);
         }
         $page =Post::find($id);
@@ -590,16 +590,16 @@ class AdminController extends Controller
           Session()->flash('error','This Page Are Not Found');
           return redirect()->route('admin.pages');
         }
-  
+
         //Check Authorized User
         $allPer = empty(json_decode(Auth::user()->permission->permission, true)['pages']['all']);
         if($allPer && $page->addedby_id!=Auth::id()){
           Session()->flash('error','You are unauthorized Try!!');
           return redirect()->route('admin.pages');
         }
-  
+
         if($action=='update' && $r->isMethod('post')){
-  
+
           $check = $r->validate([
               'name' => 'required|max:200',
               'template' => 'nullable|max:100',
@@ -609,9 +609,9 @@ class AdminController extends Controller
               'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
               'banner' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
           ]);
-  
+
           $createDate = $r->created_at ? Carbon::parse($r->created_at . ' ' . Carbon::now()->format('H:i:s')) : Carbon::now();
- 
+
           $page->name=$r->name;
           $page->short_description=$r->short_description;
           $page->description=$r->description;
@@ -629,7 +629,7 @@ class AdminController extends Controller
             uploadFile($file,$src,$srcType,$fileUse,$author);
           }
           ///////Image Upload End////////////
-  
+
           ///////Image Upload Start////////////
           if($r->hasFile('banner')){
             $file =$r->banner;
@@ -642,7 +642,7 @@ class AdminController extends Controller
           ///////Image Upload End////////////
 
           $slug =Str::slug($r->name);
-  
+
           if($slug==null){
             $page->slug=$page->id;
           }else{
@@ -652,7 +652,7 @@ class AdminController extends Controller
             $page->slug=$slug;
             }
           }
-  
+
           if (!$createDate->isSameDay($page->created_at)) {
             $page->created_at = $createDate;
           }
@@ -660,15 +660,15 @@ class AdminController extends Controller
           $page->fetured =$r->fetured?1:0;
           $page->editedby_id =Auth::id();
           $page->save();
-          
+
           //Gallery posts
           if($r->galleries){
-  
+
             $page->postTags()->whereNotIn('reff_id',$r->galleries)->delete();
-  
+
             for ($i=0; $i < count($r->galleries); $i++) {
               $tag = $page->postTags()->where('reff_id',$r->galleries[$i])->first();
-  
+
                 if($tag){}else{
                 $tag =new PostAttribute();
                 $tag->type=2;
@@ -680,18 +680,18 @@ class AdminController extends Controller
          }else{
           $page->postTags()->delete();
          }
-          
-          
+
+
           Session()->flash('success','Your Are Successfully Done');
           return redirect()->back();
-  
+
         }
-  
+
         if($action=='delete'){
-          
+
           //Page Extra Data Delete
           PostExtra::where('type',0)->where('src_id',$page->id)->delete();
-  
+
           //Page Media File Delete
           $medies =Media::where('src_type',1)->where('src_id',$page->id)->get();
           foreach ($medies as  $media) {
@@ -700,20 +700,20 @@ class AdminController extends Controller
               }
               $media->delete();
           }
-  
+
           //Page Delete
           $page->delete();
           Session()->flash('success','Your Are Successfully Done');
           return redirect()->back();
-  
+
         }
-  
+
         $extraDatas=PostExtra::where('src_id',$id)->get();
-        
+
         $galleries=Attribute::latest()->where('type',4)->where('status','<>','temp')->where('parent_id',null)
         ->select(['id','name'])
         ->get();
-  
+
         return view(adminTheme().'pages.pageEdit',compact('page','extraDatas','galleries'));
     }
   // Page Management Function End
@@ -722,36 +722,36 @@ class AdminController extends Controller
 //Clients Function
 
 public function clients(Request $r){
-      
-      
+
+
       if(Auth::id()==1){
 
-          
+
         //   $duplicateBarcodes = PostAttribute::select('barcode')
         //     ->groupBy('barcode')
         //     ->havingRaw('COUNT(barcode) > 1')
         //     ->pluck('barcode');
-        
+
         // //  $duplicateData = PostAttribute::whereIn('barcode', $duplicateBarcodes)->get();
-         
+
         //  $duplicateData = PostAttribute::whereIn('barcode', $duplicateBarcodes)->get();
         // return $duplicateData;
         //  foreach($duplicateData as $duplicateDat){
-             
+
         //     $duplicateDat->barcode =$duplicateDat->updated_at->format('ymd').$duplicateDat->src_id.rand(1111,9999);
         //     $duplicateDat->save();
 
         //  }
-            
+
             // return 'success';
-            
+
         //  $duplicateData = PostAttribute::where('barcode')->get();
-          
+
       }
-      
-      
+
+
   $allPer = empty(json_decode(Auth::user()->permission->permission, true)['clients']['all']);
-  
+
   // Filter Action Start
   if($r->action){
     if($r->checkid){
@@ -776,7 +776,7 @@ public function clients(Request $r){
           $data->fetured=false;
           $data->save();
         }elseif($r->action==5){
-          
+
           $medias =Media::latest()->where('src_type',3)->where('src_id',$data->id)->get();
           foreach($medias as $media){
             if(File::exists($media->file_url)){
@@ -812,12 +812,12 @@ public function clients(Request $r){
       }
 
       if($r->status){
-         $q->where('status',$r->status); 
+         $q->where('status',$r->status);
       }
 
       // Check Permission
       if($allPer){
-       $q->where('addedby_id',auth::id()); 
+       $q->where('addedby_id',auth::id());
       }
 
   })
@@ -853,11 +853,11 @@ public function clientsAction(Request $r,$action,$id=null){
 
     return redirect()->route('admin.clientsAction',['edit',$client->id]);
 
-  } 
+  }
 
   // Add Client Action End
-  
-  
+
+
   $client =Attribute::where('type',3)->find($id);
   if(!$client){
     Session()->flash('error','This Client Are Not Found');
@@ -889,7 +889,7 @@ public function clientsAction(Request $r,$action,$id=null){
     $client->seo_keyword=$r->seo_keyword;
 
     ///////Image UploadStart////////////
-  
+
     if($r->hasFile('image')){
       $file =$r->image;
       $src  =$client->id;
@@ -898,7 +898,7 @@ public function clientsAction(Request $r,$action,$id=null){
       $author=Auth::id();
       uploadFile($file,$src,$srcType,$fileUse,$author);
     }
-    
+
     ///////Image Upload End////////////
 
     ///////Banner Upload End////////////
@@ -993,7 +993,7 @@ public function brands(Request $r){
           $data->fetured=false;
           $data->save();
         }elseif($r->action==5){
-          
+
           $medias =Media::latest()->where('src_type',3)->where('src_id',$data->id)->get();
           foreach($medias as $media){
             if(File::exists($media->file_url)){
@@ -1029,12 +1029,12 @@ public function brands(Request $r){
 
 
       if($r->status){
-         $q->where('status',$r->status); 
+         $q->where('status',$r->status);
       }
 
       // Check Permission
       if($allPer){
-       $q->where('addedby_id',auth::id()); 
+       $q->where('addedby_id',auth::id());
       }
 
   })
@@ -1070,9 +1070,9 @@ public function brandsAction(Request $r,$action,$id=null){
     $brand->save();
 
     return redirect()->route('admin.brandsAction',['edit',$brand->id]);
-  } 
+  }
   // Add Brand Action End
-  
+
   $brand =Attribute::where('type',2)->find($id);
   if(!$brand){
     Session()->flash('error','This Brand Are Not Found');
@@ -1098,7 +1098,7 @@ public function brandsAction(Request $r,$action,$id=null){
       ]);
 
       $createDate = $r->created_at ? Carbon::parse($r->created_at . ' ' . Carbon::now()->format('H:i:s')) : Carbon::now();
-      
+
       $brand->name=$r->name;
       $brand->short_description=$r->short_description;
       $brand->description=$r->description;
@@ -1106,11 +1106,11 @@ public function brandsAction(Request $r,$action,$id=null){
       $brand->short_description=$r->short_description;
       $brand->seo_keyword=$r->seo_keyword;
       $brand->location=$r->font_family;
-      
+
         if($r->parent_id==$brand->parent_id){}else{
           $brand->parent_id=$r->parent_id;
         }
-      
+
 
        ///////Image UploadStart////////////
 
@@ -1122,7 +1122,7 @@ public function brandsAction(Request $r,$action,$id=null){
           $author=Auth::id();
           uploadFile($file,$src,$srcType,$fileUse,$author);
         }
-        
+
         ///////Image Upload End////////////
 
         ///////Banner Upload End////////////
@@ -1180,7 +1180,7 @@ public function brandsAction(Request $r,$action,$id=null){
         return redirect()->route('admin.brands');
   }
   // Delete Brand Action End
-   
+
    $parents =Attribute::where('type',2)->where('parent_id',null)->get();
 
   return view(adminTheme().'brands.brandsEdit',compact('brand','parents'));
@@ -1214,13 +1214,13 @@ public function brandsAction(Request $r,$action,$id=null){
       ->where(function($q) use ($allPer) {
           // Check Permission
           if($allPer){
-            $q->where('addedby_id',auth::id()); 
+            $q->where('addedby_id',auth::id());
           }
       })
       ->select(['id','name','location','type','created_at','addedby_id','status','fetured'])
       ->paginate(25);
 
-      
+
 
       return view(adminTheme().'sliders.slidersAll',compact('sliders'));
     }
@@ -1242,7 +1242,7 @@ public function brandsAction(Request $r,$action,$id=null){
         return redirect()->route('admin.slidersAction',['edit',$slider->id]);
       }
       //Create Slider End
-      
+
       $slider =Attribute::where('type',1)->find($id);
       if(!$slider){
         Session()->flash('error','This Slider Are Not Found');
@@ -1268,7 +1268,7 @@ public function brandsAction(Request $r,$action,$id=null){
         ]);
 
         $activeSlider =Attribute::where('type',1)->where('location',$r->location)->whereNotIn('id',[$slider->id])->first();
-      
+
         if($activeSlider && $r->location){
           Session::flash('error','This Location Have Already a slider');
           return back();
@@ -1289,7 +1289,7 @@ public function brandsAction(Request $r,$action,$id=null){
           $author=Auth::id();
           uploadFile($file,$src,$srcType,$fileUse,$author);
         }
-        
+
         ///////Image Upload End////////////
 
         ///////Banner Upload End////////////
@@ -1308,10 +1308,10 @@ public function brandsAction(Request $r,$action,$id=null){
         ///////Banner Upload End////////////
 
         ///////Gallery Images UploadStart////////////
-        
+
         $files=$r->file('images');
         if($files){
-          
+
             foreach($files as $file)
             {
 
@@ -1329,11 +1329,11 @@ public function brandsAction(Request $r,$action,$id=null){
               uploadFile($file,$src,$srcType,$fileUse,$author);
 
             }
-          } 
+          }
 
         ///////Slide Drag Update Start////////////
         if(isset($r->slideid)){
-          for ($i=0; $i < count($r->slideid); $i++) { 
+          for ($i=0; $i < count($r->slideid); $i++) {
             $slide =$slider->sliderItems->find($r->slideid[$i]);
             if($slide){
               $slide->view=$i;
@@ -1433,9 +1433,9 @@ public function brandsAction(Request $r,$action,$id=null){
           $author  =Auth::id();
           uploadFile($file,$src,$srcType,$fileUse,$author);
         }
-        
+
         ///////Image Upload End////////////
-        
+
         ///////Banner UploadStart////////////
 
         if($r->hasFile('banner')){
@@ -1446,7 +1446,7 @@ public function brandsAction(Request $r,$action,$id=null){
           $author  =Auth::id();
           uploadFile($file,$src,$srcType,$fileUse,$author);
         }
-        
+
         ///////Banner Upload End////////////
 
         $slug =Str::slug($r->name);
@@ -1502,7 +1502,7 @@ public function brandsAction(Request $r,$action,$id=null){
       ->where(function($q) use ($allPer) {
           // Check Permission
           if($allPer){
-            $q->where('addedby_id',auth::id()); 
+            $q->where('addedby_id',auth::id());
           }
       })
       ->select(['id','name','location','type','created_at','addedby_id','status','fetured'])
@@ -1555,12 +1555,12 @@ public function brandsAction(Request $r,$action,$id=null){
         ]);
 
         // $activeGallery =Attribute::where('type',4)->where('location',$r->location)->whereNotIn('id',[$gallery->id])->first();
-      
+
         // if($activeGallery && $r->location){
         //   Session::flash('error','This Location Have Already a Gallery');
         //   return back();
         // }
-        
+
         $gallery->name=$r->name;
         $gallery->description=$r->description;
         $gallery->location=$r->location;
@@ -1593,13 +1593,13 @@ public function brandsAction(Request $r,$action,$id=null){
         ///////Banner Upload End////////////
 
         ///////Gallery Images UploadStart////////////
-        
+
         $files=$r->file('images');
         if($files){
-          
+
             foreach($files as $file)
             {
-              
+
               $file =$file;
               $src  =$gallery->id;
               $srcType  =3;
@@ -1609,9 +1609,9 @@ public function brandsAction(Request $r,$action,$id=null){
               uploadFile($file,$src,$srcType,$fileUse,$author,$fileStatus);
             }
           }
-            
+
         ///////Gallery Images Upload End////////////
-      
+
         $slug =Str::slug($r->name);
         if($slug==null){
           $gallery->slug=$gallery->id;
@@ -1628,9 +1628,9 @@ public function brandsAction(Request $r,$action,$id=null){
 
         if(isset($r->imageid)){
 
-          for ($i=0; $i < count($r->imageid); $i++) { 
+          for ($i=0; $i < count($r->imageid); $i++) {
               $image =$gallery->galleryImages()->where('id',$r->imageid[$i])->first();
-  
+
               if($image){
                 $image->drag=$i;
                 $image->alt_text=$r->imageName[$i];
@@ -1638,12 +1638,12 @@ public function brandsAction(Request $r,$action,$id=null){
                 $image->save();
               }
           }
-  
+
         }
-        
+
         if(isset($r->checkid)){
-  
-          for ($i=0; $i < count($r->checkid); $i++) { 
+
+          for ($i=0; $i < count($r->checkid); $i++) {
               $image =$gallery->galleryImages()->where('id',$r->checkid[$i])->first();
               if($image){
                 if(File::exists($image->file_url)){
@@ -1651,11 +1651,11 @@ public function brandsAction(Request $r,$action,$id=null){
                 }
                 $image->delete();
               }
-            
+
             }
         }
 
-        
+
         Session()->flash('success','Your Are Successfully Update');
         return redirect()->back();
 
@@ -1689,13 +1689,13 @@ public function brandsAction(Request $r,$action,$id=null){
 
     //Galleries Function End
 
-  
+
     public function paymentMethods(Request $r,$action=null,$id=null){
-        
-        
+
+
       //Create Deposit Start
       if($action=='create'){
-          
+
             $check = $r->validate([
                 'name' => 'required|max:100',
                 'method_type' => 'nullable|max:100',
@@ -1707,18 +1707,18 @@ public function brandsAction(Request $r,$action,$id=null){
             $method->type=11;
             $method->name=$r->name;
             $method->location=$r->method_type;
-            
+
             ///////Image Uploard Start////////////
             if($r->hasFile('image')){
               $file =$r->image;
               $src  =$method->id;
               $srcType  =3;
               $fileUse  =1;
-              
+
               uploadFile($file,$src,$srcType,$fileUse);
             }
             ///////Image Uploard End////////////
-        
+
             $method->description=$r->description;
             $method->status=$r->status?'active':'inactive';
             $method->addedby_id=Auth::id();
@@ -1728,16 +1728,16 @@ public function brandsAction(Request $r,$action,$id=null){
           return redirect()->route('admin.paymentMethods');
       }
       //Create Deposit End
-      
+
       if($action=='update'){
             $method =Attribute::where('type',11)->where('status','<>','temp')->find($id);
             if(!$method){
                 Session()->flash('error','This Method Are Not Found');
-                return redirect()->route('admin.paymentMethods'); 
+                return redirect()->route('admin.paymentMethods');
             }
-            
+
             $method->name=$r->name;
-            
+
             ///////Image Uploard Start////////////
             if($r->hasFile('image')){
               $file =$r->image;
@@ -1747,97 +1747,97 @@ public function brandsAction(Request $r,$action,$id=null){
               uploadFile($file,$src,$srcType,$fileUse);
             }
             ///////Image Uploard End////////////
-        
+
             $method->location=$r->method_type;
             $method->description=$r->description;
             $method->status=$r->status?'active':'inactive';
             $method->addedby_id=Auth::id();
             $method->save();
-         
+
             Session()->flash('success','Accounts Successfully Update!');
             return redirect()->route('admin.paymentMethods');
-        
-        
-            
+
+
+
       }
-      
+
       if($action=='delete'){
-            
+
             if($id==47){
                Session()->flash('error','Cash Account method can not Delete!');
-            return redirect()->back(); 
+            return redirect()->back();
             }
-            
+
             $method =Attribute::where('type',11)->where('status','<>','temp')->find($id);
             if(!$method){
                 Session()->flash('error','This Method Are Not Found');
-                return redirect()->route('admin.paymentMethods'); 
+                return redirect()->route('admin.paymentMethods');
             }
             $method->delete();
             Session()->flash('success','Accounts Successfully Deleted!');
             return redirect()->back();
-         
+
       }
-      
-      
+
+
       if($action=='manage'){
             $method =Attribute::where('type',11)->where('status','<>','temp')->find($id);
             if(!$method){
                 Session()->flash('error','This Method Are Not Found');
-                return redirect()->route('admin.paymentMethods'); 
+                return redirect()->route('admin.paymentMethods');
             }
-            
+
             if($r->startDate){
                 $from =Carbon::parse($r->startDate);
             }else{
                 $from=Carbon::now();
             }
-    
+
             if($r->endDate){
                 $to =Carbon::parse($r->endDate);
             }else{
                 $to=Carbon::now();
             }
-            
+
             if($r->transaction_id){
-                
+
                 $transaction =Transaction::whereIn('type',[4,6])->find($r->transaction_id);
                 if($transaction){
                     $startDate =$transaction->created_at;
                     //minus balance
                     $method->amounts +=$transaction->amount;
                     $method->save();
-                    
+
                     $transaction->delete();
-                    
+
                     dailyCashMacting($startDate);
                 }
-                
+
                 Session()->flash('success','Transaction are Successfully Deleted!');
                 return redirect()->back();
-                
+
             }
-            
+
             if($r->isMethod('post')){
-                
+
                 $check = $r->validate([
                   'created_at' => 'required|date',
                   'amount' => 'required|numeric',
                 //   'debit_type' => 'required|max:100',
                   'attachment' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 ]);
-                
+
 
                 if($r->amount > $method->amounts){
                     Session()->flash('error','Balance Are Not Available');
                     return redirect()->back();
                 }
-                
-                
+
+
                 $transaction =new Transaction();
                 // if($r->debit_type=='withdrawal'){
                 // }else{
-                //   $transaction->type =4; 
+                //   $transaction->type =4;
                 // }
                 $transaction->type =6;
                 $transaction->status ='success';
@@ -1851,17 +1851,17 @@ public function brandsAction(Request $r,$action,$id=null){
                 $transaction->billing_address=general()->address_one;
                 $transaction->created_at=$r->created_at?:Carbon::now();
                 $transaction->save();
-                
+
                 //minus balance
                 $method->amounts -=$transaction->amount;
                 $method->save();
-                
+
                 dailyCashMacting($transaction->created_at);
-                
+
                 Session()->flash('success','Debit are Successfully Done!');
                 return redirect()->back();
             }
-            
+
             $transactions = Transaction::latest()
             ->whereIn('type', [0, 1, 6, 4])
             ->whereDate('created_at', '>=', $from)
@@ -1882,7 +1882,7 @@ public function brandsAction(Request $r,$action,$id=null){
                           });
                       });
                 });
-        
+
                 // Type 6 and 4 without order, just method_id
                 $query->orWhere(function ($q) use ($method) {
                     $q->whereIn('type', [6, 4])
@@ -1890,20 +1890,20 @@ public function brandsAction(Request $r,$action,$id=null){
                 });
             })
             ->get();
-            
+
 
 
 
             return view(adminTheme().'accounts.accountsMethodManage',compact('method','from','to','transactions'));
       }
-      
+
       $methods =Attribute::where('type',11)->where('status','<>','temp')->get();
 
       return view(adminTheme().'accounts.accountsMethod',compact('methods'));
-        
+
     }
-    
-    
+
+
     //product Warehouse Function
     public function productsWarehouses(Request $r){
         //Filter Action Start
@@ -1945,7 +1945,7 @@ public function brandsAction(Request $r,$action,$id=null){
                       $q->where('name','LIKE','%'.$r->search.'%');
                   }
                   if($r->status){
-                    $q->where('status',$r->status); 
+                    $q->where('status',$r->status);
                   }
             })
             ->select(['id','name','description','created_at','status'])
@@ -1953,18 +1953,18 @@ public function brandsAction(Request $r,$action,$id=null){
                   'search'=>$r->search,
                   'status'=>$r->status,
                 ]);
-        
+
         return view(adminTheme().'products.warehouses.warehousesAll',compact('warehouses'));
     }
 
     public function productsWarehousesAction(Request $r,$action,$id=null){
         //Add Warehouse  Start
         if($action=='create'){
-            
+
             $check = $r->validate([
                 'name' => 'required|max:200',
             ]);
-            
+
             $warehouse =new Attribute();
             $warehouse->type =5;
             $warehouse->name=$r->name;
@@ -1972,7 +1972,7 @@ public function brandsAction(Request $r,$action,$id=null){
             $warehouse->status ='active';
             $warehouse->addedby_id =Auth::id();
             $warehouse->created_at =Carbon::now();
-            
+
             $slug = Str::slug($warehouse->name);
             if ($slug && Attribute::where('type', 5)->where('slug', $slug)->first()) {
                 $slug = $slug.'-'. $warehouse->id;
@@ -1982,16 +1982,16 @@ public function brandsAction(Request $r,$action,$id=null){
 
             Session()->flash('success','You Are Successfully Added');
             return redirect()->back();
-            
+
         }
         //Add Warehouse  End
-        
+
         $warehouse =Attribute::where('type',5)->find($id);
         if(!$warehouse){
         Session()->flash('error','This Warehouse Are Not Found');
         return redirect()->route('admin.productsWarehouses');
         }
-        
+
         //Update Warehouse  Start
         if($action=='update'){
             $check = $r->validate([
@@ -2009,42 +2009,42 @@ public function brandsAction(Request $r,$action,$id=null){
             $warehouse->status =$r->status?'active':'inactive';
             $warehouse->editedby_id =Auth::id();
             $warehouse->save();
-        
+
             Session()->flash('success','Your Are Successfully Done');
             return redirect()->back();
         }
         //Update Warehouse  End
-        
+
         //Delete Warehouse  Start
-        if($action=='delete'){    
+        if($action=='delete'){
             $warehouse->delete();
             Session()->flash('success','Your Are Successfully Done');
             return redirect()->back();
         }
         //Delete Warehouse  End
         return redirect()->back();
-        
+
     }
     //Product Warehouse Function End
 
-    
+
     public function expensesReports(Request $r){
-        
+
         $from = $r->startDate ? Carbon::parse($r->startDate): Carbon::now()->subDay(0);
         $to = $r->endDate ? Carbon::parse($r->endDate): Carbon::now();
-        
-        
+
+
         $expenses =Expense::latest()
         ->where(function($q) use($r,$from,$to){
 
             if($r->search){
                 $q->where('name','LIKE','%'.$r->search.'%');
             }
-            
+
             if($r->type){
                 $q->where('type_id',$r->type);
             }
-            
+
             if($r->warehouse_id){
                 $q->where('warehouse_id',$r->warehouse_id);
             }
@@ -2052,15 +2052,15 @@ public function brandsAction(Request $r,$action,$id=null){
             $q->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to);
 
         });
-      
+
         $expenses = $expenses->get();
-      
+
       $types =Attribute::where('type',12)->select(['id','name'])->get();
 
       return view('admin.accounts.expenses.expensesReport',compact('expenses','types','from','to'));
 
     }
-    
+
     public function expensesTypes(Request $r){
 
 
@@ -2078,13 +2078,13 @@ public function brandsAction(Request $r,$action,$id=null){
 
 
     public function expensesTypesAction(Request $r,$action,$id=null){
-        
+
         if($action=='create' && $r->isMethod('post')){
 
               $check = $r->validate([
                   'name' => 'required|max:191',
               ]);
-    
+
               $expensesType  = new Attribute();
               $expensesType->type=12;
               $expensesType->name=$r->name;
@@ -2092,14 +2092,14 @@ public function brandsAction(Request $r,$action,$id=null){
               $expensesType->status='active';
               $expensesType->addedby_id=Auth::id();
               $expensesType->save();
-    
+
             Session()->flash('success','Type Added Successfully Done!');
             return redirect()->route('admin.expensesTypes');
-            
+
         }
-        
-        
-        
+
+
+
       $expensesType =Attribute::where('type',12)->find($id);
       if(!$expensesType){
         Session()->flash('error','This Type Are Not Found');
@@ -2107,7 +2107,7 @@ public function brandsAction(Request $r,$action,$id=null){
       }
 
       if($action=='update'){
-          
+
         $check = $r->validate([
               'name' => 'required|max:191',
           ]);
@@ -2129,34 +2129,34 @@ public function brandsAction(Request $r,$action,$id=null){
         Session()->flash('success','Type Deleted Successfully Done!');
         return redirect()->route('admin.expensesTypes');
       }
-      
+
       Session()->flash('error','Unknown Type Action Not Allowed');
       return redirect()->route('admin.expensesTypes');
 
     }
 
 
-    
-    public function expensesList(Request $r){
-        
 
-        
+    public function expensesList(Request $r){
+
+
+
         $expenses =Expense::latest()
-        
+
         ->where(function($q) use($r){
 
             if($r->search){
                 $q->where('name','LIKE','%'.$r->search.'%');
             }
-            
+
             if($r->type){
                 $q->where('type_id',$r->type);
             }
-            
+
             if($r->warehouse_id){
                 $q->where('warehouse_id',$r->warehouse_id);
             }
-            
+
             if($r->startDate || $r->endDate)
             {
                 if($r->startDate){
@@ -2175,21 +2175,21 @@ public function brandsAction(Request $r,$action,$id=null){
             }
 
         });
-      
+
         $expenses = $expenses->paginate(25)->appends([
             'type'=>$r->type,
             'startDate'=>$r->startDate,
             'endDate'=>$r->endDate,
         ]);
-      
+
       $types =Attribute::where('type',12)->select(['id','name'])->get();
 
       return view('admin.accounts.expenses.expensesList',compact('expenses','types'));
-      
+
     }
 
     public function expensesListAction(Request $r,$action,$id=null){
-        
+
         if($action=='create' && $r->isMethod('post')){
             $check = $r->validate([
                   'date' => 'required',
@@ -2198,20 +2198,20 @@ public function brandsAction(Request $r,$action,$id=null){
                   'amount' => 'required|numeric',
                   'attachment' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
               ]);
-              
+
                $method =Attribute::where('type',11)->where('status','<>','temp')->find(87);
                 if(!$method){
                     Session()->flash('error','Cash Method Are Not Found');
-                    return redirect()->back(); 
+                    return redirect()->back();
                 }
-                
+
                 if($r->warehouse_id=='1020'){
                     if($r->amount > $method->amounts){
                         Session()->flash('error','Balance Are Not Available');
                         return redirect()->back();
                     }
                 }
-              
+
               $expense  = new Expense();
               $expense->type_id=$r->type;
               $expense->warehouse_id=$r->warehouse_id;
@@ -2221,7 +2221,7 @@ public function brandsAction(Request $r,$action,$id=null){
               $expense->addedby_id=Auth::id();
               $expense->created_at=$r->date?:Carbon::now();
               $expense->save();
-              
+
               ///////Image UploadStart////////////
              if($r->hasFile('attachment')){
                $file =$r->attachment;
@@ -2232,7 +2232,7 @@ public function brandsAction(Request $r,$action,$id=null){
                uploadFile($file,$src,$srcType,$fileUse,$author);
              }
              ///////Image Upload End////////////
-             
+
             $transaction =new Transaction();
             $transaction->type =4;
             $transaction->src_id =$expense->id;
@@ -2247,24 +2247,24 @@ public function brandsAction(Request $r,$action,$id=null){
             $transaction->billing_address=general()->address_one;
             $transaction->created_at=$expense->created_at;
             $transaction->save();
-            
+
             if($r->warehouse_id=='1020'){
                 //minus balance
                 $method->amounts -=$transaction->amount;
                 $method->save();
             }
-            
+
             dailyCashMacting($transaction->created_at);
-            
-              
-              
+
+
+
             Session()->flash('success','Expense Added Successfully Done!');
             return redirect()->route('admin.expensesList');
         }
-        
-        
+
+
         $expense =Expense::find($id);
-      
+
         if(!$expense){
           Session()->flash('error','Expense Are Not Found');
           return redirect()->route('admin.expensesList');
@@ -2279,8 +2279,8 @@ public function brandsAction(Request $r,$action,$id=null){
                 'amount' => 'required|numeric',
                 'attachment' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
             ]);
-            
-            
+
+
             $hasTransection =$expense->transection;
             if($hasTransection){
                 if($expense->amount > $r->amount){
@@ -2307,7 +2307,7 @@ public function brandsAction(Request $r,$action,$id=null){
                 $hasTransection->save();
                 dailyCashMacting($hasTransection->created_at);
             }
-            
+
 
             $expense->type_id=$r->type;
             $expense->warehouse_id=$r->warehouse_id;
@@ -2316,9 +2316,9 @@ public function brandsAction(Request $r,$action,$id=null){
             $expense->editedby_id=Auth::id();
             $expense->created_at=$r->date?:Carbon::now();
             $expense->save();
-            
-            
-            
+
+
+
             ///////Image UploadStart////////////
              if($r->hasFile('attachment')){
                $file =$r->attachment;
@@ -2336,7 +2336,7 @@ public function brandsAction(Request $r,$action,$id=null){
         }
 
         if($action=='delete'){
-          
+
             $hasTransection =$expense->transection;
             if($hasTransection){
                 $startDate =$hasTransection->created_at;
@@ -2346,10 +2346,10 @@ public function brandsAction(Request $r,$action,$id=null){
                     $method->save();
                 }
                 $hasTransection->delete();
-                
+
                 dailyCashMacting($startDate);
             }
-            
+
             $expense->delete();
 
             Session()->flash('success','Type Deleted Successfully Done!');
@@ -2363,7 +2363,7 @@ public function brandsAction(Request $r,$action,$id=null){
     }
 
     public function reportsAll(Request $r,$type){
-        
+
         if($r->startDate){
             $from =Carbon::parse($r->startDate);
         }else{
@@ -2375,7 +2375,7 @@ public function brandsAction(Request $r,$action,$id=null){
         }else{
             $to=Carbon::now();
         }
-        
+
         $startDay = clone $from;
         $daysDifference = $startDay->diffInDays($to);
         if($daysDifference > 0){
@@ -2383,15 +2383,15 @@ public function brandsAction(Request $r,$action,$id=null){
         }else{
         $previousDate = $startDay->subDay();
         }
-        
+
         if($type=='products'){
-            
+
             $brands = Attribute::where('type',2)->where('status','<>','temp')->where('parent_id',null)->get();
             $categories = Attribute::where('type',0)->where('status','<>','temp')->where('parent_id',null)->get();
-            
+
             $products = Post::latest()->where('type',2)->where('status', '<>','temp')
                 ->where(function($qq)  use ($r)  {
-    
+
                     if($r->brand)
                     {
                         $qq->where('brand_id',$r->brand);
@@ -2407,12 +2407,12 @@ public function brandsAction(Request $r,$action,$id=null){
                     {
                         $qq->where('status',$r->status);
                     }
-    
+
                     if($r->search)
                     {
                          $qq->where('name','like',"%{$r->search}%");
                     }
-    
+
                     if($r->startDate || $r->endDate)
                     {
                         if($r->startDate){
@@ -2420,21 +2420,21 @@ public function brandsAction(Request $r,$action,$id=null){
                         }else{
                             $from=Carbon::now()->format('Y-m-d');
                         }
-    
+
                         if($r->endDate){
                             $to =$r->endDate;
                         }else{
                             $to=Carbon::now()->format('Y-m-d');
                         }
-    
+
                         $qq->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to);
-    
+
                     }
-    
+
                 })->paginate(50);
-            
+
             return view(adminTheme().'reports.productReports',compact('products','categories','brands','type'));
-            
+
         }elseif($type=='history-of-product'){
             $summery =null;
             $stocksHistory=null;
@@ -2447,45 +2447,45 @@ public function brandsAction(Request $r,$action,$id=null){
                 if(!$products){
                     return abort(404);
                 }
-                
-          
+
+
                 if($r->stock_qty){
-                    
+
                     if($products->allTransferOrder()->count() > 0){
                         Session()->flash('success','Can Not Stock Adjustment already Transfer Quantity!');
                         return redirect()->back();
                     }
-                    
+
                     if(count($r->stock_qty) > 0){
                         foreach($products->warehouseStores as $i=>$stock){
-                            
+
                             $sales = $products->allSales()
                                 ->where('variant_id',$stock->variant_id)
                                 ->whereHas('order', function($q)use($stock){
                                     $q->where('branch_id',$stock->branch_id);
                                 })
                                 ->latest('created_at');
-                                
+
                             $salesQty =$sales->sum('quantity') - $sales->sum('return_quantity');
-                            
+
                             $status=true;
                             $qty =$r->stock_qty[$i]+$salesQty;
                             // return $qty;
                             $stockInventory =$products->allPurchases()->latest()->whereHas('order',function($q)use($stock){$q->where('branch_id',$stock->branch_id);})->where('variant_id',$stock->variant_id)->get();
-                            
+
                             $lastIndex = count($stockInventory) - 1;
 
                             foreach($stockInventory as $j=>$invt){
-                                
+
                                 if($qty > $invt->quantity){
-                                  
+
                                     if($j == $lastIndex) {
                                         $invt->quantity=$qty;
                                         $invt->save();
                                     }else{
-                                       $qty -=$invt->quantity; 
+                                       $qty -=$invt->quantity;
                                     }
-                                  
+
                                 }else{
                                     if($qty > 0){
                                         $invt->quantity=$qty;
@@ -2502,14 +2502,14 @@ public function brandsAction(Request $r,$action,$id=null){
                                         }
                                     }
                                 }
-                                
+
                             }
-                            
-                            
+
+
                             $stock->quantity =$r->stock_qty[$i];
                             $stock->save();
                         }
-                        
+
                         foreach ($products->productVariationAttributeItems()->get() as $item) {
                             $warehouseRecords = $products->warehouseStores()->where('variant_id', $item->id);
                             $hasMinus = $warehouseRecords->where('quantity', '<', 0)->exists();
@@ -2524,14 +2524,14 @@ public function brandsAction(Request $r,$action,$id=null){
                             $item->save();
                         }
                         $products->warehouseStores()->whereDoesntHave('variant')->delete();
-    
+
                         $products->quantity=$products->warehouseStores()->whereHas('variant')->sum('quantity');
                         $products->save();
                     }
                     Session()->flash('success','Stock Adjustment Updated!');
                     return redirect()->back();
-                }   
-   
+                }
+
                 // if(Auth::id()==663){
                 //   $qtys = [4,2,3,0];
 
@@ -2541,7 +2541,7 @@ public function brandsAction(Request $r,$action,$id=null){
                 //           $stock->quantity =$qtys[$i];
                 //           $stock->save();
                 //       }
-      
+
                 //       foreach ($products->productVariationAttributeItems()->get() as $item) {
                 //             $warehouseRecords = $products->warehouseStores()->where('variant_id', $item->id);
                 //             $hasMinus = $warehouseRecords->where('quantity', '<', 0)->exists();
@@ -2559,12 +2559,12 @@ public function brandsAction(Request $r,$action,$id=null){
 
                 //     $products->quantity=$products->warehouseStores()->whereHas('variant')->sum('quantity');
                 //     $products->save();
-                      
+
                 //   }
-                  
+
                 //   return 'Success';
                 // }
-                
+
                 $summery=[
                         'pos_sale_qty'=>$products->allSales()->whereHas('order',function($q){$q->where('order_type','pos_order');})->sum('quantity'),
                         'pos_sale_amount'=>$products->allSales()->whereHas('order',function($q){$q->where('order_type','pos_order');})->sum('final_price'),
@@ -2577,21 +2577,21 @@ public function brandsAction(Request $r,$action,$id=null){
                 $stocksMinusHistory =$products->allMinusStock()->latest()->get();
                 $salesHistory =$products->allSales()->latest()->get();
                 $transferHistory =$products->allTransferOrder()->latest()->get();
-                
+
                 // return Order::whereIn('order_type',['customer_order'])
                 // ->whereNotIn('order_status',['temp','pending','cancelled','completed','shipped','delivered','confirmed'])
                 // ->get();
-                
+
                 $allHistory = OrderItem::whereHas('order',function($q)use($products){
                             $q->where('order_status','<>','temp')->where('product_id',$products->id);
                         })->get();
-                
-                
+
+
             }elseif($r->startDate || $r->endDate || $r->search || $r->category){
-                
+
                 $from = $r->startDate ?? null;
                 $to = $r->endDate ?? Carbon::now()->format('Y-m-d');
-                
+
                 $products = Post::where(function($q){
                         if(request()->category){
                             $q->whereHas('productCtgs',function($qq){
@@ -2601,7 +2601,7 @@ public function brandsAction(Request $r,$action,$id=null){
                         if(request()->search){
                             $q->where('name','like','%'.request()->search.'%')->orWhere('id','like','%'.request()->search.'%');
                         }
-                        
+
                     })
                     ->withSum(['allSales as total_sales_quantity' => function ($query) use ($from, $to) {
                         $query->whereHas('order', function($q) use ($from, $to){
@@ -2633,7 +2633,7 @@ public function brandsAction(Request $r,$action,$id=null){
                     ->where('status', '<>', 'temp')
                     ->orderByDesc('total_sales_quantity')
                     ->get();
-                    
+
             }else{
                 $products = Post::withSum(['allSales as total_sales_quantity' => function ($query) {
                         $query->select(\DB::raw('SUM(quantity)'));
@@ -2649,61 +2649,61 @@ public function brandsAction(Request $r,$action,$id=null){
                     ->get();
                 // return $products;
             }
-            
+
             $categories =Attribute::where('type',0)->where('status','<>','temp')->where('parent_id',null)->get();
-            
+
             return view(adminTheme().'reports.productHistoryReport',compact('products','categories','summery','stocksHistory','stocksMinusHistory','transferHistory','allHistory','salesHistory','type'));
-            
-            
+
+
         }elseif($type=='order-reports'){
-            
+
             $orders = Order::latest()->where('order_type','customer_order')->where('order_status', '<>','temp')
                 ->where(function($qq)  use ($r)  {
                     if($r->status){
                         $qq->where('order_status',$r->status);
                     }
-    
+
                     if($r->search){
-                           $qq->where('name','LIKE','%'.$r->search.'%')->orWhere('email','LIKE','%'.$r->search.'%')->orWhere('mobile','LIKE','%'.$r->search.'%'); 
+                           $qq->where('name','LIKE','%'.$r->search.'%')->orWhere('email','LIKE','%'.$r->search.'%')->orWhere('mobile','LIKE','%'.$r->search.'%');
                     }
-    
+
                     if($r->startDate || $r->endDate){
                         if($r->startDate){
                             $from =$r->startDate;
                         }else{
                             $from=Carbon::now()->format('Y-m-d');
                         }
-    
+
                         if($r->endDate){
                             $to =$r->endDate;
                         }else{
                             $to=Carbon::now()->format('Y-m-d');
                         }
-    
+
                         $qq->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to);
                     }
-    
+
                 })->paginate(50);
-            
+
             return view(adminTheme().'reports.orderReports',compact('orders','type'));
         }elseif($type=='customer-reports'){
-            
+
                 $customers =User::latest()
                         ->where(function($qq)  use ($r)  {
-        
+
                         if($r->search){
-                           $qq->where('name','LIKE','%'.$r->search.'%')->orWhere('email','LIKE','%'.$r->search.'%')->orWhere('mobile','LIKE','%'.$r->search.'%'); 
+                           $qq->where('name','LIKE','%'.$r->search.'%')->orWhere('email','LIKE','%'.$r->search.'%')->orWhere('mobile','LIKE','%'.$r->search.'%');
                         }
-                    
+
                     })
                     ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)
                     ->get();
-            
-            
+
+
             return view(adminTheme().'reports.customerReports',compact('customers','from','to','type'));
-            
-        
-            
+
+
+
         }elseif($type=='today-reports'){
 
             $startDate =$r->startDate?Carbon::parse($r->startDate):Carbon::now();
@@ -2713,55 +2713,55 @@ public function brandsAction(Request $r,$action,$id=null){
                 ->whereDate('created_at', $startDate);
             })
             ->get();
-            
+
             $totalDueSale=Order::whereIn('order_type',['customer_order','wholesale_order','pos_order'])
                 ->whereNotIn('order_status',['temp','pending','cancelled'])
                 ->where('due_amount', '>',0)
                 ->sum('due_amount');
-            
+
             $todayStockSale=OrderItem::whereHas('order',function($q)use($startDate){
               $q->whereIn('order_type',['customer_order','wholesale_order','pos_order'])
                 ->whereNotIn('order_status',['temp','pending','cancelled'])
                 ->whereDate('created_at', $startDate);
             })
             ->get();
-    
+
             $todaySale=Order::latest()->where('order_type','customer_order')
             // ->whereNotIn('order_status',['temp','pending','cancelled'])
                 ->whereIn('order_status',['confirmed','shipped','delivered','returned'])
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-            
-            
-           
+
+
+
             $todaySaleShipping=Order::latest()->where('order_type','customer_order')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
             ->whereDate('created_at', $startDate)
             ->sum('shipping_charge');
-            
+
             $todayWholesale=Order::latest()->where('order_type','wholesale_order')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
-            
+
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-            
+
             $todayStockPurchase=Order::latest()->where('order_type','purchase_order')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
-            
+
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-            
+
             $todayReturnSale=Order::latest()->whereIn('order_type',['order_return','wholesale_return'])
             ->whereNotIn('order_status',['temp','pending','cancelled'])
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-            
+
             $posSale = DB::table('orders')->where('order_type','pos_order')->where('order_status','delivered')->whereDate('created_at', $startDate)->sum('grand_total');
-            
+
             $todayExpense=Expense::latest()->whereDate('created_at', $startDate)
                         ->where('warehouse_id','1020')
                         ->sum('amount');
-            
+
             $methods = Attribute::where('type', 11)
             ->where('status', 'active')
             ->orderBy('name')
@@ -2769,35 +2769,35 @@ public function brandsAction(Request $r,$action,$id=null){
             ->get()
             ->filter(function ($item)use($startDate){
                 $collection =0;
-                
+
                 $collection +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','customer_order');
                     // ->whereDate('created_at', $startDate);
                 })
                 ->whereDate('created_at', $startDate)
                 ->where('method_id',$item->id)->sum('amount');
-                
+
                 $collection +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','wholesale_order');
                     // ->whereDate('created_at', $startDate);
                 })
                 ->whereDate('created_at', $startDate)
                 ->where('method_id',$item->id)->sum('amount');
-                
+
                 $collection +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','pos_order');
                     // ->whereDate('created_at', $startDate);
                 })
                 ->whereDate('created_at', $startDate)
                 ->where('payment_method_id',$item->id)->sum('amount');
-                
-    
+
+
                 $item->collection=$collection;
                 return $collection > 0;
             })
             ->values();
 
-                    
+
             $methods1 = Attribute::where('type', 11)
                 ->where('status', 'active')
                 ->orderBy('name')
@@ -2810,15 +2810,15 @@ public function brandsAction(Request $r,$action,$id=null){
                         ->whereDate('created_at', $startDate)
                         ->where('method_id', $item->id)
                         ->sum('amount');
-            
+
                     $item->collection = $collection;
                     return $item;
                 })
                 ->filter(function ($item) {
                     return $item->collection > 0;
                 })
-                ->values(); 
-            
+                ->values();
+
             $methods2 = Attribute::where('type', 11)
                 ->where('status', 'active')
                 ->orderBy('name')
@@ -2831,15 +2831,15 @@ public function brandsAction(Request $r,$action,$id=null){
                         ->whereDate('created_at', $startDate)
                         ->where('method_id', $item->id)
                         ->sum('amount');
-            
+
                     $item->collection = $collection;
                     return $item;
                 })
                 ->filter(function ($item) {
                     return $item->collection > 0;
                 })
-                ->values(); 
-            
+                ->values();
+
             $methods3 = Attribute::where('type', 11)
                 ->where('status', 'active')
                 ->orderBy('name')
@@ -2852,19 +2852,19 @@ public function brandsAction(Request $r,$action,$id=null){
                         ->whereDate('created_at', $startDate)
                         ->where('payment_method_id', $item->id)
                         ->sum('amount');
-            
+
                     $item->collection = $collection;
                     return $item;
                 })
                 ->filter(function ($item) {
                     return $item->collection > 0;
                 })
-                ->values(); 
-     
-            
-                
+                ->values();
+
+
+
             // dailyCashMacting($startDate);
-            
+
             //Privius Cash Start
             $preCash =0;
             $formDate =Carbon::parse('2025-07-22');
@@ -2876,46 +2876,46 @@ public function brandsAction(Request $r,$action,$id=null){
                     $preCash =$cashData->available_cash;
                 }
             }
-            //Privius Cash End     
-            
+            //Privius Cash End
+
             // return  Transaction::whereHas('order',function($q){
             //         $q->where('order_type','customer_order');
             //     })
             //     ->whereDate('created_at', $startDate)
             //     ->where('method_id',87)->with('order')->get();
-            
-            
+
+
             $cashSum =Transaction::whereHas('order',function($q){
                     $q->where('order_type','customer_order');
                 })
                 ->whereDate('created_at', $startDate)
                 ->where('method_id',87)->sum('amount');
-                
+
             $cashSum +=Transaction::whereHas('order',function($q){
                     $q->where('order_type','wholesale_order');
                 })
                 ->whereDate('created_at', $startDate)
                 ->where('method_id',87)->sum('amount');
-            
+
             $cashSum +=Transaction::whereHas('order',function($q){
                     $q->where('order_type','pos_order')->where('order_status','delivered');
                 })
                 ->whereDate('created_at', $startDate)
                 ->where('payment_method_id',87)
                 ->sum('amount');
-            
-            
+
+
             $withdrawal =Transaction::where('type',6)->whereDate('created_at', $startDate)->sum('amount');
             $expenses =Transaction::where('type',4)->whereDate('created_at', $startDate)
                         ->whereHas('expense',function($q){
                             $q->where('warehouse_id','1020');
                         })
                         ->sum('amount');
-            
+
             $cash =$cashSum;
-            
+
             $available=($preCash+$cash) - ($expenses+$withdrawal);
-            
+
             $reports=array(
                     "todaySale"=>$todaySale - $todaySaleShipping,
                     "todaySaleShipping"=>$todaySaleShipping,
@@ -2934,12 +2934,12 @@ public function brandsAction(Request $r,$action,$id=null){
                     "todayStockIn"=>$todayStockIn->sum('quantity'),
                     "todayStockInItem"=>$todayStockIn->unique('product_id')->count(),
                 );
-                
+
             // dailyCashMacting($startDate);
-            
+
             return view(adminTheme().'reports.todayReports',compact('type','reports','methods','methods1','methods2','methods3','startDate','priviusDate'));
-            
-            
+
+
             $startDate =$r->startDate?Carbon::parse($r->startDate):Carbon::now();
             $todayStockIn=OrderItem::whereHas('order',function($q)use($startDate){
               $q->whereIn('order_type',['purchase_order','order_return','wholesale_return'])
@@ -2947,51 +2947,51 @@ public function brandsAction(Request $r,$action,$id=null){
                 ->whereDate('created_at', $startDate);
             })
             ->get();
-            
+
             $totalDueSale=Order::whereIn('order_type',['customer_order','wholesale_order','pos_order'])
                 ->whereNotIn('order_status',['temp','pending','cancelled'])
                 ->where('due_amount', '>',0)
                 ->sum('due_amount');
-            
+
             $todayStockSale=OrderItem::whereHas('order',function($q)use($startDate){
               $q->whereIn('order_type',['customer_order','wholesale_order','pos_order'])
                 ->whereNotIn('order_status',['temp','pending','cancelled'])
                 ->whereDate('created_at', $startDate);
             })
             ->get();
-    
+
             $todaySale=Order::latest()->where('order_type','customer_order')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-           
+
             $todaySaleShipping=Order::latest()->where('order_type','customer_order')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
             ->whereDate('created_at', $startDate)
             ->sum('shipping_charge');
-            
+
             $todayWholesale=Order::latest()->where('order_type','wholesale_order')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
-            
+
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-            
+
             $todayStockPurchase=Order::latest()->where('order_type','purchase_order')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
-            
+
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-            
+
             $todayReturnSale=Order::latest()->where('order_type','order_return')
             ->whereNotIn('order_status',['temp','pending','cancelled'])
-            
+
             ->whereDate('created_at', $startDate)
             ->sum('grand_total');
-            
+
             $posSale = DB::table('orders')->where('order_type','pos_order')->where('order_status','delivered')->whereDate('created_at', $startDate)->sum('grand_total');
-            
+
             $todayExpense=Expense::latest()->whereDate('created_at', $startDate)->sum('amount');
-            
+
             $methods = Attribute::where('type', 11)
             ->where('status', 'active')
             ->orderBy('name')
@@ -2999,69 +2999,69 @@ public function brandsAction(Request $r,$action,$id=null){
             ->get()
             ->filter(function ($item)use($startDate){
                 $collection =0;
-                
+
                 $collection +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','customer_order')->whereDate('created_at', $startDate);
                 })->where('method_id',$item->id)->sum('amount');
-                
+
                 $collection +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','wholesale_order')->whereDate('created_at', $startDate);
                 })->where('method_id',$item->id)->sum('amount');
-                
+
                 $collection +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','pos_order')->whereDate('created_at', $startDate);
                 })->where('payment_method_id',$item->id)->sum('amount');
-                
-    
+
+
                 $item->collection=$collection;
                 return $collection > 0;
             })
             ->values();
-            
-            
+
+
             //Privius Cash Start
             $hasDatePriviusData =Transaction::latest()->whereIn('type',[0,1])->whereDate('created_at','<',$startDate)->first();
             $priviusDate =$hasDatePriviusData?$hasDatePriviusData->created_at:$startDate->copy()->subDay();
             $cashSumOld =Transaction::whereHas('order',function($q)use($priviusDate){
                     $q->where('order_type','customer_order')->whereDate('created_at', $priviusDate);
                 })->where('method_id',87)->sum('amount');
-            
+
             $cashSumOld +=Transaction::whereHas('order',function($q)use($priviusDate){
                     $q->where('order_type','wholesale_order')->whereDate('created_at', $priviusDate);
                 })->where('method_id',87)->sum('amount');
-                
+
             $cashSumOld +=Transaction::whereHas('order',function($q)use($priviusDate){
                     $q->where('order_type','pos_order')->whereDate('created_at', $priviusDate);
                 })->where('payment_method_id',87)->sum('amount');
-            
-            
+
+
             $withdrawalOld =Transaction::where('type',6)->whereDate('created_at', $priviusDate)->sum('amount');
             $expensesOld =Transaction::where('type',4)->whereDate('created_at', $priviusDate)->sum('amount');
-            
+
             // return $cashSumOld; $priviusDate->format('d-M-Y');
-            
-            
+
+
             $preCash =0;$cashSumOld - ($withdrawalOld+$expensesOld);
-            
-            
-            //Privius Cash End            
-            
+
+
+            //Privius Cash End
+
             $cashSum =Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','customer_order')->whereDate('created_at', $startDate);
                 })->where('method_id',87)->sum('amount');
-            
+
             $cashSum +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','wholesale_order')->whereDate('created_at', $startDate);
                 })->where('method_id',87)->sum('amount');
-                
+
             $cashSum +=Transaction::whereHas('order',function($q)use($startDate){
                     $q->where('order_type','pos_order')->where('order_status','delivered')->whereDate('created_at', $startDate);
                 })->where('payment_method_id',87)
                 ->sum('amount');
-            
+
             $withdrawal =Transaction::where('type',6)->whereDate('created_at', $startDate)->sum('amount');
             $expenses =Transaction::where('type',4)->whereDate('created_at', $startDate)->sum('amount');
-            
+
             $cash =$cashSum;
             $available=$cash;
             if ($startDate->isToday()){
@@ -3072,8 +3072,8 @@ public function brandsAction(Request $r,$action,$id=null){
                 $available =($preCash+$cash) - ($withdrawal+$expenses);
             }
 
-            
-            
+
+
             $reports=array(
                     "todaySale"=>$todaySale - $todaySaleShipping,
                     "todaySaleShipping"=>$todaySaleShipping,
@@ -3094,10 +3094,10 @@ public function brandsAction(Request $r,$action,$id=null){
                 );
 
             return view(adminTheme().'reports.todayReports',compact('type','reports','methods','startDate','priviusDate'));
-        
-            
+
+
         }elseif($type=='store-branch'){
-            
+
             $products=null;
             if(request()->branch || request()->category || request()->search){
                 $products =Post::latest()->where('type',2)->where('status','active')
@@ -3124,8 +3124,8 @@ public function brandsAction(Request $r,$action,$id=null){
             $categories =Attribute::where('type',0)->where('status','<>','temp')->where('parent_id',null)->get();
             return view(adminTheme().'reports.storeBranchReports',compact('type','warehouses','categories','products'));
         }else{
-            
-            
+
+
             $currentMonth = Carbon::now();
             $monthlyData = [];
             for ($i = 0,$currentMonth; $i < 12; $i++) {
@@ -3160,7 +3160,7 @@ public function brandsAction(Request $r,$action,$id=null){
                                     }
                                 })
                                 ->sum('amount');
-                
+
                 $customerTotal =User::latest()->where('wholesale',false)->where('admin',false)
                                 ->whereMonth('created_at', $month->format('m'))
                                 ->whereYear('created_at', $month->format('Y'))
@@ -3174,13 +3174,13 @@ public function brandsAction(Request $r,$action,$id=null){
                     'wholesaleTotal' => $orders->where('order_type', 'wholesale_order')->sum('grand_total'),
                     'purchaseTotal' => $orders->where('order_type', 'purchase_order')->sum('grand_total'),
                     'expensesTotal' => $expensesTotal,
-                    'customerTotal' => $customerTotal, 
-                    'returnTotal' => $returnOrders,  
+                    'customerTotal' => $customerTotal,
+                    'returnTotal' => $returnOrders,
                 ];
-                
+
                 $currentMonth=$month;
             }
-            
+
             $customerOrders  = Order::latest()->where('order_type','customer_order')->whereIn('order_status',['confirmed','shipped','delivered','returned'])
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)
                             ->where(function($q){
@@ -3189,7 +3189,7 @@ public function brandsAction(Request $r,$action,$id=null){
                                 }
                             })
                             ->get(['id','invoice','name','mobile','grand_total','total_price','adjustment_amount','branch_id','profit_loss','payment_status','order_status','created_at']);
-            
+
             $posOrders  = Order::latest()->where('order_type','pos_order')->where('order_status','<>','temp')
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)
                             ->where(function($q){
@@ -3198,7 +3198,7 @@ public function brandsAction(Request $r,$action,$id=null){
                                 }
                             })
                             ->get(['id','invoice','name','mobile','grand_total','branch_id','profit_loss','payment_status','order_status','created_at']);
-                            
+
             $purchasesOrders  = Order::latest()->where('order_type','purchase_order')->whereIn('order_status',['confirmed','shipped','delivered','returned'])
                                 ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)
                                 ->where(function($q){
@@ -3207,8 +3207,8 @@ public function brandsAction(Request $r,$action,$id=null){
                                     }
                                 })
                                 ->get(['id','invoice','name','branch_id','mobile','grand_total','total_price','due_amount','paid_amount','shipping_charge','payment_status','adjustment_amount','order_status','created_at']);
-            
-            
+
+
             $wholesaleOrders  = Order::latest()->where('order_type','wholesale_order')->whereIn('order_status',['confirmed','shipped','delivered'])
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)
                             ->where(function($q){
@@ -3217,7 +3217,7 @@ public function brandsAction(Request $r,$action,$id=null){
                                 }
                             })
                             ->get(['id','invoice','branch_id','profit_loss','name','mobile','grand_total','total_price','adjustment_amount','due_amount','paid_amount','shipping_charge','payment_status','adjustment_amount','order_status','created_at']);
-            
+
             $returnOrders  = Order::latest()->whereIn('order_type',['wholesale_return','order_return'])->whereIn('order_status',['delivered','completed'])
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)
                             ->where(function($q){
@@ -3226,7 +3226,7 @@ public function brandsAction(Request $r,$action,$id=null){
                                 }
                             })
                             ->get(['id','invoice','branch_id','parent_id','name','mobile','grand_total','total_price','due_amount','paid_amount','shipping_charge','payment_status','adjustment_amount','order_status','created_at']);
-            
+
             $expensesOrders =Expense::latest()->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)
                                 ->where(function($q){
                                     if(request()->warehouse){
@@ -3234,16 +3234,16 @@ public function brandsAction(Request $r,$action,$id=null){
                                     }
                                 })
                                 ->get();
-            
+
             $customers  = User::where('status',1)->where('wholesale',false)->where('admin',false)
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)->get(['id','name','mobile','email','created_at']);
-            
+
             collect($customers)->map(function($item){
                 $item->total_revenue =$item->orders()->whereIn('order_status',['confirmed','shipped','delivered','returned'])->sum('grand_total');
                 unset($item->orders);
                 return $item;
             });
-            
+
             $report =array(
                     'onlineSales'=>$customerOrders->sum('total_price') - $customerOrders->sum('adjustment_amount'),
                     'posSales'=>$posOrders->sum('grand_total'),
@@ -3255,7 +3255,7 @@ public function brandsAction(Request $r,$action,$id=null){
                 );
 
             return view(adminTheme().'reports.summeryReports1',compact('type','from','to','report','customerOrders','customers','posOrders','expensesOrders','purchasesOrders','wholesaleOrders','returnOrders','monthlyData'));
-                
+
             $currentMonth = Carbon::now();
             $monthlyData = [];
             for ($i = 0,$currentMonth; $i < 12; $i++) {
@@ -3266,7 +3266,7 @@ public function brandsAction(Request $r,$action,$id=null){
                     ->whereYear('created_at', $month->format('Y'))
                     ->select(['id', 'grand_total','shipping_charge', 'order_type'])
                     ->get();
-        
+
                 $monthlyData[] = [
                     'month' => $month->format('F Y'),
                     'total' => $orders->sum('grand_total'),
@@ -3277,37 +3277,37 @@ public function brandsAction(Request $r,$action,$id=null){
                 $currentMonth =$month;
             }
 
-            
+
             $customerOrders  = Order::latest()->where('order_type','customer_order')->whereIn('order_status',['confirmed','shipped','delivered','returned'])
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)->get(['id','invoice','name','mobile','grand_total','total_price','shipping_charge','payment_status','adjustment_amount','order_status','created_at']);
-            
+
             $posOrders  = Order::latest()->where('order_type','pos_order')->where('order_status','<>','temp')
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)->get(['id','invoice','name','mobile','grand_total','payment_status','order_status','created_at']);
-            
+
             $wholesaleOrders  = Order::latest()->where('order_type','wholesale_order')->whereIn('order_status',['confirmed','shipped','delivered'])
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)->get(['id','invoice','name','mobile','grand_total','total_price','shipping_charge','payment_status','adjustment_amount','order_status','created_at']);
-            
+
             $users  = User::where('status',1)
                             ->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to)->count();
-            
-            
+
+
             //Previus data get
             $preCustomerOrders  = Order::latest()->where('order_type','customer_order')->whereIn('order_status',['confirmed','shipped','delivered','returned'])
                             ->whereDate('created_at','>=',$previousDate)->whereDate('created_at','<',$from)->get(['id','invoice','name','mobile','grand_total','payment_status','order_status','created_at']);
-            
+
             $prePosOrders  = Order::latest()->where('order_type','pos_order')->where('order_status','<>','temp')
                             ->whereDate('created_at','>=',$previousDate)->whereDate('created_at','<',$from)->get(['id','invoice','name','mobile','grand_total','payment_status','order_status','created_at']);
-            
+
             $preWholesaleOrders  = Order::latest()->where('order_type','wholesale_order')->whereIn('order_status',['confirmed','shipped','delivered'])
                             ->whereDate('created_at','>=',$previousDate)->whereDate('created_at','<',$from)->get(['id','invoice','name','mobile','grand_total','payment_status','order_status','created_at']);
-            
+
             $preUsers  = User::where('status',1)
                             ->whereDate('created_at','>=',$previousDate)->whereDate('created_at','<',$from)->count();
-            
-            
+
+
             $totalSales =($customerOrders->sum('total_price')-$customerOrders->sum('adjustment_amount'))+$posOrders->sum('grand_total')+$wholesaleOrders->sum('grand_total');
             $preTotalSales =$preCustomerOrders->sum('grand_total')+$prePosOrders->sum('grand_total')+$preWholesaleOrders->sum('grand_total');
-            
+
             $report =array(
                     'totalSales'=>($customerOrders->sum('total_price')-$customerOrders->sum('adjustment_amount'))+$posOrders->sum('grand_total'),
                     'grothSales1'=>$preTotalSales,
@@ -3322,7 +3322,7 @@ public function brandsAction(Request $r,$action,$id=null){
                     'customer1'=>$preWholesaleOrders->sum('grand_total'),
                     'preCustomer'=>($preWholesaleOrders->sum('grand_total') > 0) ? (($wholesaleOrders->sum('grand_total') - $preWholesaleOrders->sum('grand_total')) / $preWholesaleOrders->sum('grand_total')) * 100 : 100,
                 );
-            
+
 
                 // $toEmail ='rabiulk449@gmail.com';
                 // $toName =general()->title;
@@ -3332,22 +3332,22 @@ public function brandsAction(Request $r,$action,$id=null){
                 // sendMail($toEmail,$toName,$subject,$datas,$template);
 
                 // return 'success';
-            
-        
+
+
             return view(adminTheme().'reports.summeryReports',compact('type','from','to','report','posOrders','customerOrders','wholesaleOrders','monthlyData'));
         }
-         
-        
+
+
     }
 
 
 
     public function themeSetting(Request $r){
-      
+
       $homeDatas =PostExtra::where('type',4)->where('parent_id',null)->where('status','<>','temp')->latest()->get();
-      
+
       $offerNotes =PostExtra::where('type',5)->latest()->get();
-      
+
       $bannerNote =PostExtra::where('type',6)->first();
       if(!$bannerNote){
           $bannerNote =new PostExtra();
@@ -3355,7 +3355,7 @@ public function brandsAction(Request $r,$action,$id=null){
           $bannerNote->type=6;
           $bannerNote->save();
       }
-      
+
       $featuredNote =PostExtra::where('type',7)->first();
       if(!$featuredNote){
           $featuredNote =new PostExtra();
@@ -3363,31 +3363,31 @@ public function brandsAction(Request $r,$action,$id=null){
           $featuredNote->type=7;
           $featuredNote->save();
       }
-      
+
       return view(adminTheme().'theme-setting.themeSetting',compact('homeDatas','offerNotes','bannerNote','featuredNote'));
     }
-    
+
     public function themeSettingAction(Request $r,$action,$id=null){
-        
-        
+
+
         if($action=='add-offer-note'){
-            
+
             $check = $r->validate([
               'note_title' => 'required',
             ]);
-            
+
             $note =new PostExtra();
             $note->type=5;
             $note->content=$r->note_title;
             $note->status='active';
             $note->save();
-            
+
             Session()->flash('success','Your Are Successfully Done');
-            return redirect()->back();    
+            return redirect()->back();
         }
-        
+
         if($action=='update-banner-note'){
-            
+
             $check = $r->validate([
                 'sub_title' => 'nullable|max:200',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
@@ -3403,7 +3403,7 @@ public function brandsAction(Request $r,$action,$id=null){
             $offerBanner->status=$r->status?'active':'pending';
             $offerBanner->featured=$r->featured?true:false;
             $offerBanner->save();
-            
+
             ///////Image UploadStart////////////
              if($r->hasFile('image')){
                $file =$r->image;
@@ -3414,16 +3414,16 @@ public function brandsAction(Request $r,$action,$id=null){
                uploadFile($file,$src,$srcType,$fileUse,$author);
              }
              ///////Image Upload End////////////
-            
-            
+
+
             Session()->flash('success','Data Updated Successfully Done');
             return redirect()->back();
 
-            
+
         }
-        
+
         if($action=='update-featured-note'){
-            
+
             $check = $r->validate([
                 'payment_delivery' => 'required|max:300',
                 'return_refund' => 'required|max:300',
@@ -3435,18 +3435,18 @@ public function brandsAction(Request $r,$action,$id=null){
                 Session()->flash('error','Featured Text Are Not Found');
                 return redirect()->back();
             }
-            
+
             $featuredText->name=$r->payment_delivery;
             $featuredText->content=$r->return_refund;
             $featuredText->sub_title=$r->online_support;
             $featuredText->description=$r->gift_card;
             $featuredText->save();
-            
+
             Session()->flash('success','Data Updated Successfully Done');
             return redirect()->back();
-            
+
         }
-        
+
         if($action=='update-offer-note'){
 
             $check = $r->validate([
@@ -3461,9 +3461,9 @@ public function brandsAction(Request $r,$action,$id=null){
                 Session()->flash('error','Note Are Not Found');
                 return redirect()->back();
             }
-            
+
             $createDate =$r->created_at?Carbon::parse($r->created_at . ' ' . Carbon::now()->format('H:i:s')):Carbon::now();
-            
+
             $note->content=$r->link_url;
             $note->status=$r->status?'active':'inactive';
             if (!$createDate->isSameDay($note->created_at)) {
@@ -3494,25 +3494,25 @@ public function brandsAction(Request $r,$action,$id=null){
 
 
             $note->save();
-            
+
             Session()->flash('success','Your Are Successfully Done');
             return redirect()->back();
-            
+
         }
-        
+
         if($action=='delete-offer-note'){
             $note =PostExtra::where('type',5)->find($id);
             if(!$note){
                 Session()->flash('error','Note Are Not Found');
                 return redirect()->back();
             }
-            
+
             $note->delete();
-            
+
             Session()->flash('success','Your Are Successfully Deleted');
             return redirect()->back();
         }
-        
+
         if($action=='create'){
               $postData =PostExtra::where('type',4)->where('status','temp')->where('addedby_id',Auth::id())->first();
               if(!$postData){
@@ -3530,10 +3530,10 @@ public function brandsAction(Request $r,$action,$id=null){
             Session()->flash('error','Home Data Not Found');
             return redirect()->route('admin.themeSetting');
         }
-        
-        
+
+
         if($action=="update"){
-            
+
             $check = $r->validate([
                 'title' => 'required|max:100',
                 'sub_title' => 'nullable|max:100',
@@ -3543,9 +3543,9 @@ public function brandsAction(Request $r,$action,$id=null){
                 'image_link' => 'nullable',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             ]);
-            
+
             $createDate =$r->created_at?Carbon::parse($r->created_at . ' ' . Carbon::now()->format('H:i:s')):Carbon::now();
-            
+
             $homedata->name=$r->title;
             $homedata->sub_title=$r->sub_title;
             $homedata->description=$r->description;
@@ -3553,7 +3553,7 @@ public function brandsAction(Request $r,$action,$id=null){
             // $homedata->data_type=$r->data_type?:null;
             // $homedata->category_id=$r->category_id;
             $homedata->image_link=$r->image_link;
-            
+
             ///////Image UploadStart////////////
              if($r->hasFile('image')){
                $file =$r->image;
@@ -3564,7 +3564,7 @@ public function brandsAction(Request $r,$action,$id=null){
                uploadFile($file,$src,$srcType,$fileUse,$author);
              }
              ///////Image Upload End////////////
-            
+
             ///////Image UploadStart////////////
              if($r->hasFile('image2')){
                $file =$r->image2;
@@ -3575,21 +3575,21 @@ public function brandsAction(Request $r,$action,$id=null){
                uploadFile($file,$src,$srcType,$fileUse,$author);
              }
              ///////Image Upload End////////////
-            
+
             $homedata->status=$r->status?'active':'inactive';
             if (!$createDate->isSameDay($homedata->created_at)) {
                 $homedata->created_at = $createDate;
             }
             $homedata->save();
-            
+
             Session()->flash('success','Data Updated Successfully Done');
             return redirect()->back();
 
         }
-        
+
         if($action=="delete"){
             $homedata->homeDataIds()->delete();
-            
+
             $userFiles =Media::latest()->where('src_type',9)->where('src_id',$homedata->id)->get();
             foreach ($userFiles as $media) {
                 if(File::exists($media->file_url)){
@@ -3597,22 +3597,22 @@ public function brandsAction(Request $r,$action,$id=null){
                   }
                 $media->delete();
             }
-            
+
             $homedata->delete();
-            
+
             Session()->flash('success','Data Delete Successfully Done!');
             return redirect()->route('admin.themeSetting');
         }
-        
+
         $searchProducts =null;
-        
+
         if($r->ajax()){
-            
+
             if($r->type=='search'){
-                
+
                 $searchProducts =Post::latest()->where('type',2)->where('status','active')->where('stock_status',true)->where('quantity','>',0)
                 ->where(function($q) use($r){
-                    
+
                     if($r->type=='search' && $r->key){
                         $q->where('name','like','%'.$r->key.'%');
                         $q->orWhere('sku_code','like','%'.$r->key.'%');
@@ -3625,23 +3625,23 @@ public function brandsAction(Request $r,$action,$id=null){
                   'key'=>$r->key,
                   'barcode'=>$r->barcode,
                 ]);
-                
+
                $datas =view(adminTheme().'purchase.includes.searchResult',compact('searchProducts'))->render();
-                
+
                 return Response()->json([
                     'success' => true,
                     'view' => $datas,
-                ]); 
+                ]);
             }
-            
+
             if($r->type=='addproduct' && $r->id){
 
                $product =Post::latest()->where('type',2)->where('status','active')->find($r->id);
 
                if($product){
-                   
+
                     $item =PostExtra::where('parent_id',$homedata->id)->where('src_id',$product->id)->first();
-                            
+
                     if(!$item){
                         $item =new PostExtra();
                         $item->parent_id =$homedata->id;
@@ -3649,35 +3649,35 @@ public function brandsAction(Request $r,$action,$id=null){
                         $item->type =4;
                         $item->save();
                     }
-                    
+
                }
-               
+
             }
-            
+
             $datas =view(adminTheme().'theme-setting.includes.homeProducts',compact('homedata'))->render();
-            
+
             return Response()->json([
                     'success' => true,
                     'view' => $datas,
                 ]);
-            
+
         }
-        
+
 
         $categories =Attribute::where('type',0)->where('status','active')->where('parent_id',null)->get(['id','name']);
-        
+
         return view(adminTheme().'theme-setting.themeSettingEdit',compact('homedata','searchProducts','categories'));
     }
-    
-    
+
+
     public function themeSettingUpdate(Request $r,$id){
         $homedata =PostExtra::where('type',4)->find($id);
-        
+
         if(!$homedata){
             Session()->flash('error','Home Data Not Found');
             return redirect()->route('admin.themeSetting');
         }
-        
+
         $check = $r->validate([
             'title' => 'required|max:191',
             'bg_color' => 'nullable|max:100',
@@ -3698,17 +3698,17 @@ public function brandsAction(Request $r,$action,$id=null){
         $homedata->product_type = $r->product_type?:0;
         $homedata->status = $r->status;
         $homedata->save();
-        
+
         if(isset($r->delete)){
-            
+
             $homedata->homeDataIds()->whereIn('src_id',$r->delete)->delete();
-            
+
         }
-        
-        
+
+
         Session()->flash('success','Data Updated Successfully Done');
         return redirect()->back();
-        
+
     }
 
 
@@ -3743,7 +3743,7 @@ public function brandsAction(Request $r,$action,$id=null){
             $data->fetured=false;
             $data->save();
           }elseif($r->action==5){
-            
+
             //User Media File Delete
             $data->admin=false;
             $data->addedby_at=null;
@@ -3766,7 +3766,7 @@ public function brandsAction(Request $r,$action,$id=null){
 
     //Filter Action End
 
-  
+
     $users =User::latest()->whereIn('status',[0,1])->where('admin',true)->where('id','<>','671')
     ->where(function($q) use($r) {
 
@@ -3783,7 +3783,7 @@ public function brandsAction(Request $r,$action,$id=null){
         if($r->role){
            $q->where('permission_id',$r->role);
         }
-        
+
         if($r->startDate || $r->endDate)
         {
             if($r->startDate){
@@ -3821,14 +3821,14 @@ public function brandsAction(Request $r,$action,$id=null){
     ->selectRaw("count(case when status = 1 then 1 end) as active")
     ->selectRaw("count(case when status = 0 then 1 end) as inactive")
     ->first();
-   
+
     $roles =Permission::latest()->where('status','active')->get();
 
     return view(adminTheme().'users.admins.users',compact('users','totals','roles'));
   }
 
   public function usersAdminAction (Request $r,$action,$id=null){
-    
+
     //Add Admin User Start
     if($action=='create' && $r->isMethod('post')){
 
@@ -3837,23 +3837,23 @@ public function brandsAction(Request $r,$action,$id=null){
       }else{
         $hasUser =User::latest()->whereIn('status',[0,1])->where('mobile',$r->username)->first();
       }
-  
+
       if(!$hasUser){
           Session()->flash('error','This User Are Not Register');
           return redirect()->route('admin.usersAdmin');
       }
-  
+
       if($hasUser->admin){
           Session()->flash('error','This User Are already Admin Authorize');
           return redirect()->route('admin.usersAdmin');
       }
-  
+
       $hasUser->admin=true;
       $hasUser->permission_id=1;
       $hasUser->addedby_at=Carbon::now();
       $hasUser->addedby_id=Auth::id();
       $hasUser->save();
-     
+
       Session()->flash('success','User Are Successfully Admin Authorize Done!');
       return redirect()->route('admin.usersAdminAction',['edit',$hasUser->id]);
 
@@ -3882,9 +3882,9 @@ public function brandsAction(Request $r,$action,$id=null){
                'postal_code' => 'nullable|max:20',
                'role' => 'nullable|numeric',
                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-   
+
            ]);
-   
+
          $user->name =$r->name;
          $user->mobile =$r->mobile;
          $user->email =$r->email;
@@ -3896,7 +3896,7 @@ public function brandsAction(Request $r,$action,$id=null){
          $user->postal_code =$r->postal_code;
          $user->profile =$r->profile;
          $user->permission_id =$r->role;
-         
+
          ///////Image UploadStart////////////
          if($r->hasFile('image')){
            $file =$r->image;
@@ -3907,11 +3907,11 @@ public function brandsAction(Request $r,$action,$id=null){
            uploadFile($file,$src,$srcType,$fileUse,$author);
          }
          ///////Image Upload End////////////
-   
+
          $user->status=$r->status?true:false;
          $user->fetured=$r->featured?true:false;
          $user->save();
-   
+
          Session()->flash('success','Your Updated Are Successfully Done!');
          return redirect()->route('admin.usersAdminAction',['edit',$user->id]);
       }
@@ -3919,12 +3919,12 @@ public function brandsAction(Request $r,$action,$id=null){
 
       //Update User Password Start
       if($action=='change-password' && $r->isMethod('post')){
-        
+
         $validator = Validator::make($r->all(), [
             // 'old_password' => 'required|string|min:8',
             'password' => 'required|string|min:8|confirmed|different:old_password',
         ]);
-      
+
         if($validator->fails()){
             return redirect()->route('admin.usersAdminAction',['edit',$user->id])->withErrors($validator)->withInput();
         }
@@ -3960,7 +3960,7 @@ public function brandsAction(Request $r,$action,$id=null){
       return view(adminTheme().'users.admins.editUser',compact('user','roles'));
 
     }
-    
+
     public function usersSupplier(Request $r){
 
     //Filter Actions Start
@@ -3973,9 +3973,9 @@ public function brandsAction(Request $r,$action,$id=null){
                     }
                 })
                 ->whereIn('id',$r->checkid)->get();
-  
+
         foreach($datas as $data){
-  
+
             if($r->action==1){
               $data->status=1;
               $data->save();
@@ -3983,7 +3983,7 @@ public function brandsAction(Request $r,$action,$id=null){
               $data->status=0;
               $data->save();
             }elseif($r->action==5){
-              
+
               $userFiles =Media::latest()->where('src_type',6)->where('src_id',$data->id)->get();
               foreach ($userFiles as $media) {
                   if(File::exists($media->file_url)){
@@ -3992,29 +3992,29 @@ public function brandsAction(Request $r,$action,$id=null){
                   $media->delete();
               }
               $data->delete();
-  
+
             }
-  
+
         }
-  
+
         Session()->flash('success','Action Successfully Completed!');
-  
+
         }else{
           Session()->flash('info','Please Need To Select Minimum One Post');
         }
-  
+
         return redirect()->back();
       }
-  
+
       //Filter Action End
-  
+
       $users =User::latest()->where('business',true)->whereIn('status',[0,1])
       ->where(function($q) use($r) {
 
                     if (general()->masterAdmins()) {
                         $q->where('id','<>',general()->masterAdmins());
                     }
-  
+
           if($r->search){
               $q->where('name','LIKE','%'.$r->search.'%');
               $q->orWhere('email','LIKE','%'.$r->search.'%');
@@ -4030,16 +4030,16 @@ public function brandsAction(Request $r,$action,$id=null){
               }else{
                   $from=Carbon::now()->format('Y-m-d');
               }
-  
+
               if($r->endDate){
                   $to =$r->endDate;
               }else{
                   $to=Carbon::now()->format('Y-m-d');
               }
-  
+
               $q->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to);
           }
-  
+
       })
       ->select(['id','name','email','mobile','created_at','company_name','address_line1','addedby_id','status'])
         ->paginate(25)->appends([
@@ -4065,7 +4065,7 @@ public function brandsAction(Request $r,$action,$id=null){
   }
 
     public function usersSupplierAction(Request $r,$action,$id=null){
-     
+
    //Add New User Start
       if($action=='create' && $r->isMethod('post')){
         $check = $r->validate([
@@ -4092,24 +4092,24 @@ public function brandsAction(Request $r,$action,$id=null){
         $user->password=Hash::make($password);
         $user->business=true;
         $user->save();
-        
+
         return redirect()->route('admin.usersSupplierAction',['edit',$user->id]);
       }
       //Add New User End
-      
-      
+
+
       $user=User::where('business',true)->whereIn('status',[0,1])->find($id);
       if(!$user){
         Session()->flash('error','This User Are Not Found');
         return redirect()->route('admin.usersSupplier');
       }
-      
+
       if($action=='view'){
         $orders =$user->orders()->whereIn('order_type',['purchase_order'])
                 ->paginate(10);
-        return view(adminTheme().'users.suppliers.viewUser',compact('user','orders'));   
+        return view(adminTheme().'users.suppliers.viewUser',compact('user','orders'));
       }
-  
+
       //Update User Profile Start
       if($action=='update' && $r->isMethod('post')){
 
@@ -4127,7 +4127,7 @@ public function brandsAction(Request $r,$action,$id=null){
           if (!$createDate->isSameDay($user->created_at)) {
               $user->created_at = $createDate;
           }
-       
+
           $user->name =$r->name;
           $user->mobile =$r->mobile;
           $user->email =$r->email;
@@ -4145,16 +4145,16 @@ public function brandsAction(Request $r,$action,$id=null){
           ///////Image Upload End////////////
           $user->status=$r->status?true:false;
           $user->save();
-    
+
           Session()->flash('success','Your Updated Are Successfully Done!');
           return redirect()->back();
-  
+
         }
         //Update User Profile End
-  
+
         //Delete User Start
         if($action=='delete'){
-  
+
           $userFiles =Media::latest()->where('src_type',6)->where('src_id',$user->id)->get();
           foreach ($userFiles as $media) {
               if(File::exists($media->file_url)){
@@ -4167,7 +4167,7 @@ public function brandsAction(Request $r,$action,$id=null){
           return redirect()->back();
         }
         //Delete User End
-        
+
       return view(adminTheme().'users.suppliers.editUser',compact('user'));
 
   }
@@ -4178,7 +4178,7 @@ public function brandsAction(Request $r,$action,$id=null){
         //Filter Actions Start
         if($r->action){
           if($r->checkid){
-    
+
           $datas=User::latest()->whereIn('status',[0,1])
            ->where(function($q){
                 if (general()->masterAdmins()) {
@@ -4186,9 +4186,9 @@ public function brandsAction(Request $r,$action,$id=null){
                 }
             })
           ->whereIn('id',$r->checkid)->get();
-    
+
           foreach($datas as $data){
-    
+
               if($r->action==1){
                 $data->status=1;
                 $data->save();
@@ -4203,7 +4203,7 @@ public function brandsAction(Request $r,$action,$id=null){
                 $data->save();
               }elseif($r->action==5){
                 if($data=='621'){
-                    
+
                 }else{
                     $userFiles =Media::latest()->where('src_type',6)->where('src_id',$data->id)->get();
                     foreach ($userFiles as $media) {
@@ -4214,38 +4214,38 @@ public function brandsAction(Request $r,$action,$id=null){
                     }
                     $data->delete();
                 }
-    
+
               }
-    
+
           }
-    
+
           Session()->flash('success','Action Successfully Completed!');
-    
+
           }else{
             Session()->flash('info','Please Need To Select Minimum One Post');
           }
-    
+
           return redirect()->back();
         }
-    
+
         //Filter Action End
-    
+
         $users =User::latest()->whereIn('status',[0,1])->where('id','<>','671')
         ->where('wholesale',false)
         ->where('business',false)
         ->where(function($q) use($r) {
-    
+
             if (general()->masterAdmins()) {
                 $q->where('id','<>',general()->masterAdmins());
             }
-            
+
             if($r->search){
                 $q->where('name','LIKE','%'.$r->search.'%');
                 $q->orWhere('email','LIKE','%'.$r->search.'%');
                 $q->orWhere('mobile','LIKE','%'.$r->search.'%');
                 $q->orWhere('member_card_id','LIKE','%'.$r->search.'%');
             }
-            
+
             if($r->startDate || $r->endDate)
             {
                 if($r->startDate){
@@ -4253,16 +4253,16 @@ public function brandsAction(Request $r,$action,$id=null){
                 }else{
                     $from=Carbon::now()->format('Y-m-d');
                 }
-    
+
                 if($r->endDate){
                     $to =$r->endDate;
                 }else{
                     $to=Carbon::now()->format('Y-m-d');
                 }
-    
+
                 $q->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to);
             }
-    
+
         })
         ->select(['id','permission_id','name','email','mobile','member_card_id','created_at','addedby_id','status'])
           ->paginate(25)->appends([
@@ -4270,7 +4270,7 @@ public function brandsAction(Request $r,$action,$id=null){
             'startDate'=>$r->startDate,
             'endDate'=>$r->endDate,
           ]);
-    
+
         //Total Count Results
         $totals = DB::table('users')->whereIn('status',[0,1])
         ->where('wholesale',false)
@@ -4284,21 +4284,21 @@ public function brandsAction(Request $r,$action,$id=null){
         ->selectRaw("count(case when status = 1 then 1 end) as active")
         ->selectRaw("count(case when status = 0 then 1 end) as inactive")
         ->first();
-    
+
         return view(adminTheme().'users.customers.users',compact('users','totals'));
     }
 
     public function usersCustomerAction(Request $r,$action,$id=null){
-     
+
         //Add New User Start
         if($action=='create' && $r->isMethod('post')){
-            
+
             $field='mobile';
             if(filter_var($r->mobile_email, FILTER_VALIDATE_EMAIL)){
                     $field = 'email';
             }
-            
-            
+
+
           $user =User::where($field,$r->mobile_email)->first();
           if(!$user){
             $password=Str::random(8);
@@ -4313,20 +4313,20 @@ public function brandsAction(Request $r,$action,$id=null){
             $user->password=Hash::make($password);
             $user->save();
           }
-          
+
           return redirect()->route('admin.usersCustomerAction',['edit',$user->id]);
         }
         //Add New User End
-        
-        
+
+
         $user=User::whereIn('status',[0,1])->find($id);
         if(!$user){
           Session()->flash('error','This User Are Not Found');
           return redirect()->route('admin.usersCustomer');
         }
-        
+
         if($action=='view'){
-            
+
             $orders =$user->orders()->where('order_status','delivered')->whereIn('order_type',['customer_order','pos_order'])
                     ->where(function($q){
                         if(request()->payment_status=='due'){
@@ -4334,13 +4334,13 @@ public function brandsAction(Request $r,$action,$id=null){
                         }
                     })
                     ->paginate(10);
-            
+
             return view(adminTheme().'users.customers.viewUser',compact('user','orders'));
         }
-    
+
         //Update User Profile Start
         if($action=='update' && $r->isMethod('post')){
-    
+
             $check = $r->validate([
                   'name' => 'required|max:100',
                   'email' => 'nullable|email|max:100|unique:users,email,'.$user->id,
@@ -4355,10 +4355,10 @@ public function brandsAction(Request $r,$action,$id=null){
                   'postal_code' => 'nullable|max:20',
                   'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
               ]);
-             
-    
+
+
             $createDate = $r->created_at ? Carbon::parse($r->created_at . ' ' . Carbon::now()->format('H:i:s')) : Carbon::now();
-      
+
             $user->name =$r->name;
             $user->mobile =$r->mobile;
             $user->email =$r->email;
@@ -4374,7 +4374,7 @@ public function brandsAction(Request $r,$action,$id=null){
             }
             ///////Image UploadStart////////////
             if($r->hasFile('image')){
-      
+
               $file =$r->image;
               $src  =$user->id;
               $srcType  =6;
@@ -4383,43 +4383,43 @@ public function brandsAction(Request $r,$action,$id=null){
               uploadFile($file,$src,$srcType,$fileUse,$author);
             }
             ///////Image Upload End////////////
-      
+
             $user->status=$r->status?true:false;
             $user->save();
-      
+
             Session()->flash('success','Your Updated Are Successfully Done!');
             return redirect()->back();
-    
+
           }
           //Update User Profile End
-    
+
           //Update User Password Change Start
           if($action=='change-password' && $r->isMethod('post')){
-       
+
             $validator = Validator::make($r->all(), [
                 'old_password' => 'required|string|min:8',
                 'password' => 'required|string|min:8|confirmed|different:old_password',
             ]);
-           
+
             if($validator->fails()){
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-    
+
             if(Hash::check($r->old_password, $user->password)){
               $user->password_show=$r->password;
               $user->password=Hash::make($r->password);
               $user->update();
-             
+
               Session()->flash('success','Your Are Successfully Done');
               return redirect()->back();
             }else{
             Session()->flash('error','Current Password Are Not Match');
             return redirect()->back();
             }
-    
+
           }
           //Update User Password Change End
-    
+
           //Delete User Start
           if($action=='delete'){
             if($user->id=='621' || $user->id=='674' || $user->id=='671'){
@@ -4438,17 +4438,17 @@ public function brandsAction(Request $r,$action,$id=null){
             return redirect()->back();
           }
           //Delete User End
-    
+
         return view(adminTheme().'users.customers.editUser',compact('user'));
 
     }
-    
+
     public function usersWholesaleCustomer(Request $r){
 
         //Filter Actions Start
         if($r->action){
           if($r->checkid){
-    
+
               $datas=User::latest()->whereIn('status',[0,1])->where('wholesale',true)
                ->where(function($q){
                     if (general()->masterAdmins()) {
@@ -4456,9 +4456,9 @@ public function brandsAction(Request $r,$action,$id=null){
                     }
                 })
               ->whereIn('id',$r->checkid)->get();
-        
+
               foreach($datas as $data){
-        
+
                   if($r->action==1){
                     $data->status=1;
                     $data->save();
@@ -4473,7 +4473,7 @@ public function brandsAction(Request $r,$action,$id=null){
                     $data->save();
                   }elseif($r->action==5){
                     if($data=='621' || '671'){
-                        
+
                     }else{
                         $userFiles =Media::latest()->where('src_type',6)->where('src_id',$data->id)->get();
                         foreach ($userFiles as $media) {
@@ -4484,36 +4484,36 @@ public function brandsAction(Request $r,$action,$id=null){
                         }
                         $data->delete();
                     }
-        
+
                   }
-        
+
               }
-        
+
               Session()->flash('success','Action Successfully Completed!');
-    
+
           }else{
             Session()->flash('info','Please Need To Select Minimum One Post');
           }
-    
+
           return redirect()->back();
         }
-    
+
         //Filter Action End
-    
+
         $users =User::latest()->whereIn('status',[0,1])->where('wholesale',true)
         ->where(function($q) use($r) {
-    
+
             if (general()->masterAdmins()) {
                 $q->where('id','<>',general()->masterAdmins());
             }
-            
+
             if($r->search){
                 $q->where('name','LIKE','%'.$r->search.'%');
                 $q->orWhere('email','LIKE','%'.$r->search.'%');
                 $q->orWhere('mobile','LIKE','%'.$r->search.'%');
                 $q->orWhere('member_card_id','LIKE','%'.$r->search.'%');
             }
-            
+
             if($r->startDate || $r->endDate)
             {
                 if($r->startDate){
@@ -4521,16 +4521,16 @@ public function brandsAction(Request $r,$action,$id=null){
                 }else{
                     $from=Carbon::now()->format('Y-m-d');
                 }
-    
+
                 if($r->endDate){
                     $to =$r->endDate;
                 }else{
                     $to=Carbon::now()->format('Y-m-d');
                 }
-    
+
                 $q->whereDate('created_at','>=',$from)->whereDate('created_at','<=',$to);
             }
-    
+
         })
         ->select(['id','permission_id','name','email','mobile','member_card_id','company_name','created_at','addedby_id','status'])
           ->paginate(25)->appends([
@@ -4538,7 +4538,7 @@ public function brandsAction(Request $r,$action,$id=null){
             'startDate'=>$r->startDate,
             'endDate'=>$r->endDate,
           ]);
-    
+
         //Total Count Results
         $totals = DB::table('users')->whereIn('status',[0,1])
          ->where('wholesale',true)
@@ -4551,27 +4551,27 @@ public function brandsAction(Request $r,$action,$id=null){
         ->selectRaw("count(case when status = 1 then 1 end) as active")
         ->selectRaw("count(case when status = 0 then 1 end) as inactive")
         ->first();
-    
+
         return view(adminTheme().'users.wholesale-customers.users',compact('users','totals'));
     }
 
     public function usersWholesaleCustomerAction(Request $r,$action,$id=null){
-     
+
         //Add New User Start
         if($action=='create' && $r->isMethod('post')){
-            
+
             $field='mobile';
             if(filter_var($r->mobile_email, FILTER_VALIDATE_EMAIL)){
                     $field = 'email';
             }
-            
-            
+
+
           $user =User::where($field,$r->mobile_email)->first();
           if($user){
             Session()->flash('error','This '.$field.' Already Register.');
             return redirect()->back();
           }
-          
+
             $password=Str::random(8);
             $user =new User();
             $user->company_name =$r->company_name;
@@ -4585,21 +4585,21 @@ public function brandsAction(Request $r,$action,$id=null){
             $user->password_show=$password;
             $user->password=Hash::make($password);
             $user->save();
-          
-          
+
+
           return redirect()->route('admin.usersWholesaleCustomerAction',['edit',$user->id]);
         }
         //Add New User End
-        
-        
+
+
         $user=User::whereIn('status',[0,1])->where('wholesale',true)->find($id);
         if(!$user){
           Session()->flash('error','This User Are Not Found');
           return redirect()->route('admin.usersWholesaleCustomer');
         }
-        
+
         if($action=='view'){
-            
+
             $orders =$user->orders()->where('order_status','delivered')->where('order_type','wholesale_order')
                     ->where(function($q){
                         if(request()->payment_status=='due'){
@@ -4607,14 +4607,14 @@ public function brandsAction(Request $r,$action,$id=null){
                         }
                     })
                     ->paginate(10);
-            
+
             return view(adminTheme().'users.wholesale-customers.viewUser',compact('user','orders'));
         }
-        
-    
+
+
         //Update User Profile Start
         if($action=='update' && $r->isMethod('post')){
-    
+
             $check = $r->validate([
                   'company_name' => 'required|max:100',
                   'name' => 'required|max:100',
@@ -4630,10 +4630,10 @@ public function brandsAction(Request $r,$action,$id=null){
                   'postal_code' => 'nullable|max:20',
                   'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
               ]);
-             
-    
+
+
             $createDate = $r->created_at ? Carbon::parse($r->created_at . ' ' . Carbon::now()->format('H:i:s')) : Carbon::now();
-      
+
             $user->company_name =$r->company_name;
             $user->name =$r->name;
             $user->mobile =$r->mobile;
@@ -4650,7 +4650,7 @@ public function brandsAction(Request $r,$action,$id=null){
             }
             ///////Image UploadStart////////////
             if($r->hasFile('image')){
-      
+
               $file =$r->image;
               $src  =$user->id;
               $srcType  =6;
@@ -4659,43 +4659,43 @@ public function brandsAction(Request $r,$action,$id=null){
               uploadFile($file,$src,$srcType,$fileUse,$author);
             }
             ///////Image Upload End////////////
-      
+
             $user->status=$r->status?true:false;
             $user->save();
-      
+
             Session()->flash('success','Your Updated Are Successfully Done!');
             return redirect()->back();
-    
+
           }
           //Update User Profile End
-    
+
           //Update User Password Change Start
           if($action=='change-password' && $r->isMethod('post')){
-       
+
             $validator = Validator::make($r->all(), [
                 'old_password' => 'required|string|min:8',
                 'password' => 'required|string|min:8|confirmed|different:old_password',
             ]);
-           
+
             if($validator->fails()){
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-    
+
             if(Hash::check($r->old_password, $user->password)){
               $user->password_show=$r->password;
               $user->password=Hash::make($r->password);
               $user->update();
-             
+
               Session()->flash('success','Your Are Successfully Done');
               return redirect()->back();
             }else{
             Session()->flash('error','Current Password Are Not Match');
             return redirect()->back();
             }
-    
+
           }
           //Update User Password Change End
-    
+
           //Delete User Start
           if($action=='delete'){
             if($user->id=='621' || $user->id=='674' || $user->id=='671'){
@@ -4714,7 +4714,7 @@ public function brandsAction(Request $r,$action,$id=null){
             return redirect()->back();
           }
           //Delete User End
-    
+
         return view(adminTheme().'users.wholesale-customers.editUser',compact('user'));
 
     }
@@ -4744,7 +4744,7 @@ public function brandsAction(Request $r,$action,$id=null){
         if($r->search){
               $q->where('name','LIKE','%'.$r->search.'%');
           }
-          
+
           if($r->startDate || $r->endDate)
           {
               if($r->startDate){
@@ -4783,7 +4783,7 @@ public function brandsAction(Request $r,$action,$id=null){
         if($r->search){
             $q->where('search_key','LIKE','%'.$r->search.'%');
         }
-        
+
         if($r->startDate || $r->endDate)
         {
             if($r->startDate){
@@ -4815,7 +4815,7 @@ public function brandsAction(Request $r,$action,$id=null){
 
 
   public function userRoleAction(Request $r,$action,$id=null){
-      
+
       if($action=='create'){
         $role  =Permission::where('addedby_id',Auth::id())->where('status','temp')->first();
         if(!$role){
@@ -4834,7 +4834,7 @@ public function brandsAction(Request $r,$action,$id=null){
       Session()->flash('error','This Role Are Not Found');
       return redirect()->route('admin.userRoles');
     }
-    
+
     if($action=='update'){
 
       //Role Update
@@ -4846,7 +4846,7 @@ public function brandsAction(Request $r,$action,$id=null){
       if($role->id==1){
     //   $role->permission =$r->permission;
       }else{
-        $role->permission =$r->permission;  
+        $role->permission =$r->permission;
       }
       $role->status ='active';
       $role->save();
@@ -4854,7 +4854,7 @@ public function brandsAction(Request $r,$action,$id=null){
       Session()->flash('success','Role Updated Are Successfully Done!');
       return redirect()->back();
     }
-    
+
     if($action=='delete'){
       //Role Delete
       $role->delete();
@@ -4927,7 +4927,7 @@ public function brandsAction(Request $r,$action,$id=null){
       Session()->flash('success','Banner Deleted Are Successfully Done!');
       return redirect()->back();
     }else if($type=='cache-clear'){
-      
+
       Artisan::call('cache:clear');
       Artisan::call('config:clear');
       Artisan::call('config:cache');
@@ -5009,7 +5009,7 @@ public function brandsAction(Request $r,$action,$id=null){
         $general->copyright_text=$r->footer_text;
         $general->fb_pixel_id=$r->fb_pixel_id;
         $general->fb_access_token=$r->fb_access_token;
-        
+
 
         ///////Image UploadStart////////////
 
@@ -5038,7 +5038,7 @@ public function brandsAction(Request $r,$action,$id=null){
           $general->logo =$fullPath;
 
       }
-        
+
         ///////pos_logo Image UploadStart////////////
 
         if($r->hasFile('pos_logo')){
@@ -5089,12 +5089,12 @@ public function brandsAction(Request $r,$action,$id=null){
             $img =time().'.'.uniqid().'.'.$file->getClientOriginalExtension();
             $path ="medies/".$folder;
             $fullPath ="medies/".$folder.'/'.$img;
-            
+
             $file->move(public_path($path), $img);
             $general->favicon =$fullPath;
 
         }
-        
+
         if($r->hasFile('banner')){
 
             $file=$r->banner;
@@ -5115,7 +5115,7 @@ public function brandsAction(Request $r,$action,$id=null){
             $img =time().'.'.uniqid().'.'.$file->getClientOriginalExtension();
             $path ="medies/".$folder;
             $fullPath ="medies/".$folder.'/'.$img;
-            
+
             $file->move(public_path($path), $img);
             $general->banner =$fullPath;
 
@@ -5193,7 +5193,7 @@ public function brandsAction(Request $r,$action,$id=null){
     }
 
     if($type=='social'){
-      
+
 
       $check = $r->validate([
             'facebook_link' => 'nullable|max:200',
@@ -5234,14 +5234,14 @@ public function brandsAction(Request $r,$action,$id=null){
 
     }
 
-    
+
     return redirect()->route('admin.setting',$type);
 
 
   }
 
   // Setting Function End
-    
+
 
 
 }
