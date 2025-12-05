@@ -553,10 +553,13 @@ function myCouponCheck($totalAmount, $uniqCartPrice)
 
 if (!function_exists('sendEvent')) {
 
-    function sendEvent($event_name, $event_id, $custom_data = [], $extra_user_data = [], $test_event_code = 'TEST64478')
+    function sendEvent($event_name, $event_id, $custom_data = [], $extra_user_data = [], $test_event_code = 'TEST70636')
     {
         $pixel  = general()->fb_pixel_id ?? null;
         $access = general()->fb_access_token ?? null;
+        $pixel  = "771431979280884";
+        $access = "EAAGovZA71nVUBQJsNBQMZCrL8ZCfGSboOuxZCzg8mImZAVDxnZCB3Bwy9G5tZAA86gf8qN25iCw8RjjyjQtBPJCvIZBdsQtGWE0oeHBllSvD8c5ktW3k0NVtHEepCJb4kDGsTr9yunAVr0ZAWZA4PWdiOoHSa7HuAv1oDteGOgVE9RKY5ulo6MJkFZARlpZCzD8I1QZDZD";
+
         if (!$pixel || !$access) return;
 
         $endpoint = "https://graph.facebook.com/v18.0/{$pixel}/events";
@@ -587,6 +590,7 @@ if (!function_exists('sendEvent')) {
         // }else if($exUserID){
         //     $user_data['external_id'] = $exUserID;
         // }
+
         if (Auth::check()) {
             $user = Auth::user();
             $user_data += [
@@ -621,14 +625,25 @@ if (!function_exists('sendEvent')) {
         if ($test_event_code) {
             $payload['test_event_code'] = $test_event_code;
         }
+
         try {
             // $response = Http::post($endpoint, $payload);
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json'
-            ])->post($endpoint, $payload);
-            // dd($response->json());
+            // $response = Http::withHeaders([
+            //     'Content-Type' => 'application/json'
+            // ])->post($endpoint, $payload);
+
+            $response = Http::withoutVerifying()->post($endpoint, $payload);
+            dd($response->body(), $response->json(), $response->status());
+            return [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'json' => $response->json(),
+            ];
+
+            dd($response->json());
             return $response->json(); // Keep this for debugging
         } catch (\Exception $e) {
+            dd($e->getMessage());
             \Log::error('FB Event Send Error: ' . $e->getMessage());
         }
     }

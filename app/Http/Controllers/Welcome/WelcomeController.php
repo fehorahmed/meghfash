@@ -275,7 +275,7 @@ class WelcomeController extends Controller
 
 
             $pixelData=[];
-            if(Auth::check()){
+            if(Auth::check() && (Auth::id()=='663')){
 
                 //Facebook Concersation API
                 $eventId =uniqid('page_');
